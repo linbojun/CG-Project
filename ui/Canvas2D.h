@@ -5,6 +5,8 @@
 
 #include "SupportCanvas2D.h"
 
+#include "Brush.h"
+
 class RayScene;
 
 class Camera;
@@ -55,6 +57,7 @@ private:
     std::unique_ptr<RayScene> m_rayScene;
 
     //TODO: [BRUSH, INTERSECT, RAY] Put your member variables here.
+      std::unique_ptr<Brush> m_brush;
 
 };
 

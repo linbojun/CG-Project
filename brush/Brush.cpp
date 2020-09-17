@@ -96,10 +96,45 @@ void Brush::brushDragged(int mouseX, int mouseY, Canvas2D* canvas) {
     //
 
     RGBA *pix = canvas->data();
+
+    // Return an array containing the rows of the image one after another, starting from the top.
+    // Each row is width() wide and there are height() rows, so this array will have
+    // width() * height() elements.
+    /*
     int size = canvas->width() * canvas->height();
     for (int i = 0; i < size; i++) {
         pix[i] = RGBA(255, 0, 0, 255);
     }
+    */
+    int w = canvas->width();
+    int start_row = std::max(0, mouseY-m_radius);
+    int end_row =  std::min(canvas->height(), mouseY+m_radius);
+    int start_col = std::max(0, mouseX-m_radius);
+    int end_col = std::min(canvas->width(), mouseX+m_radius);
+    int index = 0;
+    float alpha_255 = m_color.a;
+    float alpha = alpha_255/255;
+    for(int i = mouseY-m_radius; i<= mouseY+m_radius; i++)
+    {
+        for(int j = mouseX-m_radius; j <=  mouseX+m_radius; j++)
+        {
+            if(i< start_row || i > end_row || j < start_col ||j > end_col )
+            {
+                index++;
+                continue;
+            }
+            RGBA pix_color = pix[i*w+j];
+            float msk = m_mask.at(index++);
+
+            float red = msk * alpha * m_color.r + (1-msk*alpha)*pix_color.r;
+   //
+           float green = msk * alpha * m_color.g + (1-msk*alpha)*pix_color.g;
+           float blue = msk * alpha * m_color.b + (1-msk*alpha)*pix_color.b;
+            pix[i*w+j] = RGBA(red, green, blue, 255);
+        }
+    }
+
+
     canvas->update();
 
 }

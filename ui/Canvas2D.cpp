@@ -30,10 +30,21 @@ Canvas2D::Canvas2D() :
     // @TODO: Initialize any pointers in this class here.
     m_rayScene(nullptr)
 {
+    if(settings.brushType == BRUSH_CONSTANT)
+        m_brush = std::make_unique<ConstantBrush>(settings.brushColor, settings.brushRadius);
+    //    m_brush = new ConstantBrush(settings.brushColor, settings.brushRadius);
+    else if(settings.brushType == BRUSH_LINEAR)
+         m_brush = std::make_unique<LinearBrush>(settings.brushColor, settings.brushRadius);
+    else if(settings.brushType == BRUSH_SMUDGE)
+        m_brush = std::make_unique<SmudgeBrush>(settings.brushColor, settings.brushRadius);
+    else if(settings.brushType == BRUSH_QUADRATIC)
+         m_brush = std::make_unique<QuadraticBrush>(settings.brushColor, settings.brushRadius);
+
 }
 
 Canvas2D::~Canvas2D()
 {
+
 }
 
 // This is called when the canvas size is changed. You can change the canvas size by calling
@@ -50,6 +61,23 @@ void Canvas2D::paintEvent(QPaintEvent *e) {
 
 void Canvas2D::settingsChanged() {
     // TODO: Process changes to the application settings.
+
+    //If the case of change color of smudge brush
+    if(m_brush->color_Brush ==  false && settings.brushType == BRUSH_SMUDGE
+            && settings.brushRadius == m_brush->getRadius())
+        return;
+    if(settings.brushType == BRUSH_CONSTANT)
+        m_brush = std::make_unique<ConstantBrush>(settings.brushColor, settings.brushRadius);
+    //    m_brush = new ConstantBrush(settings.brushColor, settings.brushRadius);
+    else if(settings.brushType == BRUSH_LINEAR)
+         m_brush = std::make_unique<LinearBrush>(settings.brushColor, settings.brushRadius);
+    else if(settings.brushType == BRUSH_SMUDGE)
+        m_brush = std::make_unique<SmudgeBrush>(settings.brushColor, settings.brushRadius);
+    else if(settings.brushType == BRUSH_QUADRATIC)
+         m_brush = std::make_unique<QuadraticBrush>(settings.brushColor, settings.brushRadius);
+
+
+
     std::cout << "Canvas2d::settingsChanged() called. Settings have changed" << std::endl;
 }
 
@@ -65,6 +93,7 @@ void Canvas2D::mouseDown(int x, int y) {
 
     // You're going to need to leave the alpha value on the canvas itself at 255, but you will
     // need to use the actual alpha value to compute the new color of the pixel
+    m_brush->brushDown(x, y, this);
 
     std::cout << "Canvas2d::mouseDown() called" << std::endl;
 
@@ -75,12 +104,15 @@ void Canvas2D::mouseDown(int x, int y) {
 
 void Canvas2D::mouseDragged(int x, int y) {
     // TODO: [BRUSH] Mouse interaction for Brush.
+     m_brush->brushDragged(x, y, this);
+
     std::cout << "Canvas2d::mouseDragged() called" << std::endl;
 
 }
 
 void Canvas2D::mouseUp(int x, int y) {
     // TODO: [BRUSH] Mouse interaction for Brush.
+     m_brush->brushUp(x, y, this);
     std::cout << "Canvas2d::mouseUp() called" << std::endl;
 }
 

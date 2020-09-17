@@ -38,6 +38,7 @@ public:
     virtual void brushDown(int x, int y, Canvas2D* canvas) = 0;
     virtual void brushDragged(int x, int y, Canvas2D* canvas);
     virtual void brushUp(int x, int y, Canvas2D* canvas) = 0;
+    bool color_Brush;
 
 
 protected:
@@ -49,6 +50,7 @@ protected:
     RGBA m_color;
     std::vector<float> m_mask;
     int m_radius;
+
 
 };
 

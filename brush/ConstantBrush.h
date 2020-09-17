@@ -17,7 +17,9 @@ public:
     virtual ~ConstantBrush();
 
     virtual void brushDown(int x, int y, Canvas2D *canvas) {}
+  // virtual void brushDown(int x, int y, Canvas2D *canvas);
     virtual void brushUp(int x, int y, Canvas2D *canvas) {}
+  // virtual void brushUp(int x, int y, Canvas2D *canvas);
 
 protected:
     void makeMask(); // Constructs the mask for this brush.
