@@ -23,6 +23,7 @@ class VAO;
 class Shape
 {
 public:
+    int shape_type;
     Shape();
     ~Shape();
     void draw();

@@ -36,6 +36,7 @@ SOURCES += \
     scenegraph/ShapesScene.cpp \
     scenegraph/SceneviewScene.cpp \
     scenegraph/RayScene.cpp \
+    shapes/Cube.cpp \
     shapes/ExampleShape.cpp \
     shapes/Shape.cpp \
     ui/Canvas2D.cpp \
@@ -82,6 +83,7 @@ HEADERS += \
     scenegraph/SceneviewScene.h \
     scenegraph/RayScene.h \
     shapes/ExampleShape.h \
+    shapes/Cube.h \
     shapes/Shape.h \
     ui/Canvas2D.h \
     ui/SupportCanvas2D.h \
