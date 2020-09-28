@@ -84,8 +84,8 @@ HEADERS += \
     scenegraph/ShapesScene.h \
     scenegraph/SceneviewScene.h \
     scenegraph/RayScene.h \
-    shapes/Cylinder.h \
     shapes/Cone.h \
+    shapes/Cylinder.h \
     shapes/ExampleShape.h \
     shapes/Cube.h \
     shapes/Shape.h \

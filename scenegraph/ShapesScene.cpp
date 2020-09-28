@@ -9,6 +9,7 @@
 #include "shapes/ExampleShape.h"
 #include "shapes/Cube.h"
 #include "shapes/Cylinder.h"
+#include "shapes/Cone.h"
 
 using namespace CS123::GL;
 #include "gl/shaders/CS123Shader.h"

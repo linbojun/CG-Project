@@ -9,7 +9,7 @@ Cube::Cube(int param1_):
     size(param1_)
 {
 
-    shape_type = SHAPE_CUBE;
+    shape_type = SHAPE_CONE;
     create_vertex_data();
     buildVAO();
 }

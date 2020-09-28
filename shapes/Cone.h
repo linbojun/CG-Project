@@ -14,11 +14,4 @@ private:
     int mesh_size;
 };
 
-
-
-
-
-
-
-
 #endif
