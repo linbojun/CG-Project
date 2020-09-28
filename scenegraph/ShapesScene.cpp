@@ -8,6 +8,7 @@
 
 #include "shapes/ExampleShape.h"
 #include "shapes/Cube.h"
+#include "shapes/Cylinder.h"
 
 using namespace CS123::GL;
 #include "gl/shaders/CS123Shader.h"
@@ -37,6 +38,7 @@ ShapesScene::ShapesScene(int width, int height) :
     loadNormalsArrowShader();
 
     //TODO: [SHAPES] Allocate any additional memory you need...
+
 
 
 }
@@ -193,7 +195,9 @@ void ShapesScene::setLights(const glm::mat4 viewMatrix) {
 void ShapesScene::settingsChanged() {
     // TODO: [SHAPES] Fill this in, for now default to an example shape
     //m_shape = std::make_unique<ExampleShape>(settings.shapeParameter1, settings.shapeParameter2);
-    //if(settings.shapeType)
-    m_shape = std::make_unique<Cube>(settings.shapeParameter1);
+    if(settings.shapeType ==  SHAPE_CUBE)
+        m_shape = std::make_unique<Cube>(settings.shapeParameter1);
+    else if(settings.shapeType == SHAPE_CYLINDER)
+        m_shape = std::make_unique<Cylinder>(settings.shapeParameter1, settings.shapeParameter2);
 }
 
