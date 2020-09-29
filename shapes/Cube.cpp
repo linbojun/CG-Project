@@ -22,7 +22,6 @@ Cube::~Cube()
 void Cube::create_vertex_data()
 {
     float space = 1/(float)size;
-    std::vector<GLfloat> token;
     //add front face which is parallel to xy plane, z is constant = -0.5
     float start_x = 0.5f, start_y = 0.5f, start_z = -0.5f;
     std::vector<float> normal = {0, 0, -1};
@@ -35,37 +34,20 @@ void Cube::create_vertex_data()
 
             float x = start_x - j * space;
             //first triangle
-            token.push_back(x);
-            token.push_back(y);
-            token.push_back(z);
-            token.insert(token.end(), normal.begin(), normal.end());
+            update_m_vtx(x, y, z, normal);
 
-            token.push_back(x);
-            token.push_back(y-space);
-            token.push_back(z);
-            token.insert(token.end(), normal.begin(), normal.end());
+            update_m_vtx(x, y-space, z, normal);
 
-            token.push_back(x-space);
-            token.push_back(y);
-            token.push_back(z);
-            token.insert(token.end(), normal.begin(), normal.end());
+           update_m_vtx(x-space, y, z, normal);
 
 
             //second triangle
-            token.push_back(x);
-            token.push_back(y-space);
-            token.push_back(z);
-            token.insert(token.end(), normal.begin(), normal.end());
+           update_m_vtx(x, y-space, z, normal);
 
-            token.push_back(x-space);
-            token.push_back(y-space);
-            token.push_back(z);
-            token.insert(token.end(), normal.begin(), normal.end());
+            update_m_vtx(x-space, y-space, z, normal);
 
-            token.push_back(x-space);
-            token.push_back(y);
-            token.push_back(z);
-            token.insert(token.end(), normal.begin(), normal.end());
+            update_m_vtx(x-space, y, z, normal);
+
 
         }
 
@@ -82,42 +64,20 @@ void Cube::create_vertex_data()
         {
              float x = start_x+ j * space;
             //first triangle
-            token.push_back(x);
-             token.push_back(y);
-             token.push_back(z);
-             token.insert(token.end(), normal.begin(), normal.end());
+             update_m_vtx(x, y, z, normal);
 
-             token.push_back(x);
-             token.push_back(y-space);
-             token.push_back(z);
-             token.insert(token.end(), normal.begin(), normal.end());
+              update_m_vtx(x, y-space, z, normal);
 
-             token.push_back(x+space);
-             token.push_back(y);
-             token.push_back(z);
-             token.insert(token.end(), normal.begin(), normal.end());
+              update_m_vtx(x+space, y, z, normal);
 
               //second triangle
-             token.push_back(x);
-             token.push_back(y-space);
-             token.push_back(z);
-             token.insert(token.end(), normal.begin(), normal.end());
+             update_m_vtx(x, y-space, z, normal);
 
-             token.push_back(x+space);
-             token.push_back(y-space);
-             token.push_back(z);
-             token.insert(token.end(), normal.begin(), normal.end());
+             update_m_vtx(x+space, y - space, z, normal);
 
-
-              token.push_back(x+space);
-              token.push_back(y);
-              token.push_back(z);
-              token.insert(token.end(), normal.begin(), normal.end());
-
+               update_m_vtx(x+space, y, z, normal);
         }
     }
-    //above good!!!!
-
 
     // add the face paralleled to xz plane, y is constant =0.5
     start_x = -0.5f, start_y = 0.5f, start_z = -0.5f;
@@ -131,37 +91,18 @@ void Cube::create_vertex_data()
 
             float x = start_x+ j * space;
             //first triangle
-            token.push_back(x);
-            token.push_back(y);
-            token.push_back(z);
-            token.insert(token.end(), normal.begin(), normal.end());
+            update_m_vtx(x, y, z, normal);
 
-            token.push_back(x);
-            token.push_back(y);
-            token.push_back(z+space);
-            token.insert(token.end(), normal.begin(), normal.end());
+            update_m_vtx(x, y, z+space, normal);
 
-            token.push_back(x+space);
-            token.push_back(y);
-            token.push_back(z);
-            token.insert(token.end(), normal.begin(), normal.end());
+            update_m_vtx(x+space, y, z, normal);
 
             //second triangle
-            token.push_back(x);
-            token.push_back(y);
-            token.push_back(z+space);
-            token.insert(token.end(), normal.begin(), normal.end());
+             update_m_vtx(x, y, z+space, normal);
 
-            token.push_back(x+space);
-            token.push_back(y);
-            token.push_back(z+space);
-            token.insert(token.end(), normal.begin(), normal.end());
+             update_m_vtx(x+space, y, z+space, normal);
 
-            token.push_back(x+space);
-            token.push_back(y);
-            token.push_back(z);
-            token.insert(token.end(), normal.begin(), normal.end());
-
+             update_m_vtx(x+space, y, z, normal);
 
         }
 
@@ -181,36 +122,17 @@ void Cube::create_vertex_data()
 
             float z = start_z - j* space;
             //first triangle
-            token.push_back(x);
-            token.push_back(y);
-            token.push_back(z);
-            token.insert(token.end(), normal.begin(), normal.end());
+             update_m_vtx(x, y, z, normal);
 
-            token.push_back(x - space);
-            token.push_back(y);
-            token.push_back(z);
-            token.insert(token.end(), normal.begin(), normal.end());
+            update_m_vtx(x-space, y, z, normal);
 
-            token.push_back(x);
-            token.push_back(y);
-            token.push_back(z-space);
-            token.insert(token.end(), normal.begin(), normal.end());
+            update_m_vtx(x, y, z-space, normal);
 
             //second triangle
-            token.push_back(x - space);
-            token.push_back(y);
-            token.push_back(z);
-            token.insert(token.end(), normal.begin(), normal.end());
+            update_m_vtx(x-space, y, z, normal);
+            update_m_vtx(x-space, y, z-space, normal);
+            update_m_vtx(x, y, z-space, normal);
 
-            token.push_back(x-space);
-            token.push_back(y);
-            token.push_back(z-space);
-            token.insert(token.end(), normal.begin(), normal.end());
-
-            token.push_back(x);
-            token.push_back(y);
-            token.push_back(z-space);
-            token.insert(token.end(), normal.begin(), normal.end());
         }
 
     }
@@ -227,36 +149,18 @@ void Cube::create_vertex_data()
 
             float z = start_z - j * space;
             //first triangle
-            token.push_back(x);
-            token.push_back(y);
-            token.push_back(z);
-            token.insert(token.end(), normal.begin(), normal.end());
+            update_m_vtx(x, y, z, normal);
 
-            token.push_back(x);
-            token.push_back(y-space);
-            token.push_back(z);
-            token.insert(token.end(), normal.begin(), normal.end());
+            update_m_vtx(x, y-space, z, normal);
 
-            token.push_back(x);
-            token.push_back(y);
-            token.push_back(z - space);
-            token.insert(token.end(), normal.begin(), normal.end());
+            update_m_vtx(x, y, z-space, normal);
 
             //second triangle
-            token.push_back(x);
-            token.push_back(y-space);
-            token.push_back(z);
-            token.insert(token.end(), normal.begin(), normal.end());
+            update_m_vtx(x, y-space, z, normal);
 
-            token.push_back(x);
-            token.push_back(y-space);
-            token.push_back(z-space);
-            token.insert(token.end(), normal.begin(), normal.end());
+            update_m_vtx(x, y-space, z-space, normal);
 
-            token.push_back(x);
-            token.push_back(y);
-            token.push_back(z - space);
-            token.insert(token.end(), normal.begin(), normal.end());
+             update_m_vtx(x, y, z-space, normal);
 
         }
 
@@ -274,43 +178,21 @@ void Cube::create_vertex_data()
 
             float z = start_z+ j * space;
             //first triangle
-            token.push_back(x);
-            token.push_back(y);
-            token.push_back(z);
-            token.insert(token.end(), normal.begin(), normal.end());
+            update_m_vtx(x, y, z, normal);
 
-            token.push_back(x);
-            token.push_back(y-space);
-            token.push_back(z);
-            token.insert(token.end(), normal.begin(), normal.end());
+             update_m_vtx(x, y-space, z, normal);
 
-            token.push_back(x);
-            token.push_back(y);
-            token.push_back(z+space);
-            token.insert(token.end(), normal.begin(), normal.end());
+            update_m_vtx(x, y, z+space, normal);
 
             //second triangle
-            token.push_back(x);
-            token.push_back(y-space);
-            token.push_back(z);
-            token.insert(token.end(), normal.begin(), normal.end());
+            update_m_vtx(x, y-space, z, normal);
+            update_m_vtx(x, y-space, z+space, normal);
 
-
-            token.push_back(x);
-            token.push_back(y-space);
-            token.push_back(z+space);
-            token.insert(token.end(), normal.begin(), normal.end());
-
-            token.push_back(x);
-            token.push_back(y);
-            token.push_back(z+space);
-            token.insert(token.end(), normal.begin(), normal.end());
+           update_m_vtx(x, y, z+space, normal);
 
 
         }
 
     }
 
-    //std::vector<GLfloat> m_vertexData
-    m_vertexData = token;
 }

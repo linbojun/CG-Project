@@ -13,6 +13,7 @@ public:
 
 private:
     void create_vertex_data();
+    void create_facet(float center_x, float center_y, float center_z);
     int size;
 
 };
