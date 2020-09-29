@@ -200,5 +200,7 @@ void ShapesScene::settingsChanged() {
         m_shape = std::make_unique<Cube>(settings.shapeParameter1);
     else if(settings.shapeType == SHAPE_CYLINDER)
         m_shape = std::make_unique<Cylinder>(settings.shapeParameter1, settings.shapeParameter2);
+    else if(settings.shapeType == SHAPE_CONE)
+        m_shape = std::make_unique<Cone>(settings.shapeParameter1, settings.shapeParameter2);
 }
 

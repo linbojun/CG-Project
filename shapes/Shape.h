@@ -31,6 +31,9 @@ public:
 protected:
     /** builds the VAO, pretty much the same as from lab 1 */
     void buildVAO();
+    void update_m_vtx(float x, float y, float z, glm::vec3 normal);
+    void update_m_vtx(float x, float y, float z, std::vector<float> normal);
+   glm::vec3 crossProduct(glm::vec3 v_A, glm::vec3 v_B);
 
     std::vector<GLfloat> m_vertexData;
     std::unique_ptr<CS123::GL::VAO> m_VAO;

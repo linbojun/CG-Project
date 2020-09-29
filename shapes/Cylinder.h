@@ -10,6 +10,7 @@ public :
     ~Cylinder();
 private:
     void create_vertex_data();
+    void create_cycle(float y_axis, bool face_top);
     int mesh_size;
     int side_size;
 };

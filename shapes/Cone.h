@@ -10,6 +10,7 @@ public :
     ~Cone();
 private:
     void create_vertex_data();
+    void create_cycle(float y_axis, bool face_up);
     int side_size;
     int mesh_size;
 };
