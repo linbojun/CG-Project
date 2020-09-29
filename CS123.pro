@@ -36,6 +36,7 @@ SOURCES += \
     scenegraph/ShapesScene.cpp \
     scenegraph/SceneviewScene.cpp \
     scenegraph/RayScene.cpp \
+    shapes/Sphere.cpp \
     shapes/Cylinder.cpp \
     shapes/Cone.cpp \
     shapes/Cube.cpp \
@@ -84,6 +85,7 @@ HEADERS += \
     scenegraph/ShapesScene.h \
     scenegraph/SceneviewScene.h \
     scenegraph/RayScene.h \
+    shapes/Sphere.h \
     shapes/Cone.h \
     shapes/Cylinder.h \
     shapes/ExampleShape.h \

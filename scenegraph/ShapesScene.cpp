@@ -10,6 +10,7 @@
 #include "shapes/Cube.h"
 #include "shapes/Cylinder.h"
 #include "shapes/Cone.h"
+#include "shapes/Sphere.h"
 
 using namespace CS123::GL;
 #include "gl/shaders/CS123Shader.h"
@@ -202,5 +203,7 @@ void ShapesScene::settingsChanged() {
         m_shape = std::make_unique<Cylinder>(settings.shapeParameter1, settings.shapeParameter2);
     else if(settings.shapeType == SHAPE_CONE)
         m_shape = std::make_unique<Cone>(settings.shapeParameter1, settings.shapeParameter2);
+    else if(settings.shapeType == SHAPE_SPHERE)
+        m_shape = std::make_unique<Sphere>(settings.shapeParameter1, settings.shapeParameter2);
 }
 
