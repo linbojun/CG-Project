@@ -102,7 +102,7 @@ void Cylinder::create_cycle(float y_axis, bool face_top)
 
             //first triangle
             if(face_top){
-            update_m_vtx(j*old_x_spc, y, j*old_x_spc, normal);
+            update_m_vtx(j*old_x_spc, y, j*old_z_spc, normal);
 
             update_m_vtx((j+1)*new_x_spc, y, (j+1)*new_z_spc, normal);
 
