@@ -2,10 +2,9 @@
 #define CANVAS2D_H
 
 #include <memory>
-
 #include "SupportCanvas2D.h"
-
 #include "Brush.h"
+#include "filter/Filter.h"
 
 class RayScene;
 
@@ -58,6 +57,7 @@ private:
 
     //TODO: [BRUSH, INTERSECT, RAY] Put your member variables here.
       std::unique_ptr<Brush> m_brush;
+      std::unique_ptr<Filter> m_filter;
 
 };
 

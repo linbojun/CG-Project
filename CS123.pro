@@ -42,6 +42,11 @@ SOURCES += \
     shapes/Cube.cpp \
     shapes/ExampleShape.cpp \
     shapes/Shape.cpp \
+    filter/Filter.cpp \
+    filter/FilterSobel.cpp \
+    filter/FilterGray.cpp \
+    filter/FilterBlur.cpp \
+    filter/FilterScaling.cpp \
     ui/Canvas2D.cpp \
     ui/SupportCanvas2D.cpp \
     ui/SupportCanvas3D.cpp \
@@ -91,6 +96,11 @@ HEADERS += \
     shapes/ExampleShape.h \
     shapes/Cube.h \
     shapes/Shape.h \
+    filter/Filter.h \
+    filter/FilterSobel.h \
+    filter/FilterGray.h \
+    filter/FilterBlur.h \
+    filter/FilterScaling.h \
     ui/Canvas2D.h \
     ui/SupportCanvas2D.h \
     ui/SupportCanvas3D.h \

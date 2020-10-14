@@ -25,6 +25,9 @@
 #include "brush/LinearBrush.h"
 #include "brush/QuadraticBrush.h"
 #include "brush/SmudgeBrush.h"
+#include "filter/FilterSobel.h"
+#include "filter/FilterBlur.h"
+#include "filter/FilterScaling.h"
 
 Canvas2D::Canvas2D() :
     // @TODO: Initialize any pointers in this class here.
@@ -77,7 +80,6 @@ void Canvas2D::settingsChanged() {
          m_brush = std::make_unique<QuadraticBrush>(settings.brushColor, settings.brushRadius);
 
 
-
     std::cout << "Canvas2d::settingsChanged() called. Settings have changed" << std::endl;
 }
 
@@ -126,12 +128,17 @@ void Canvas2D::filterImage() {
     // TODO: [FILTER] Filter the image. Some example code to get the filter type is provided below.
 
     switch(settings.filterType) {
-        case FILTER_BLUR:
-            // ...
+        case FILTER_EDGE_DETECT:
+            m_filter = std::make_unique<FilterSobel>(settings.edgeDetectSensitivity);
             break;
+        case FILTER_BLUR:
+            m_filter = std::make_unique<FilterBlur>(settings.blurRadius);
+            break;
+        case FILTER_SCALE:
+            m_filter = std::make_unique<FilterScaling>(settings.scaleX, settings.scaleY);
             // fill in the rest
     }
-
+    m_filter->apply(this);
     // Leave this code here! This code ensures that the Canvas2D will be completely wiped before
     // drawing the new image.
     repaint(rect());
