@@ -36,20 +36,20 @@ void FilterSobel::apply(Canvas2D* canvas)
     std::cout<<"FilterSobel apply"<<std::endl;
      int width = canvas->width(), height = canvas->height();
       RGBA result[width * height];
+      RGBA * token;
     //calculate G_x
 
-    RGBA* G_x = Convolve2D(canvas->data(), width, height, m_kernel_x);
-   //result =  conv1D_row(canvas->data(), canvas->width(), canvas->height(), m_kernel_x_row);
-   //memcpy(canvas->data(), result, width * height * sizeof (RGBA));
+   RGBA* G_x = Convolve2D(canvas->data(), width, height, m_kernel_x);
+    //token = conv1D_row(canvas->data(), width, height, m_kernel_x_row);
 
-   // RGBA* G_x = conv1D_col(result, canvas->width(), canvas->height(),m_kernel_x_col);
-    //memcpy(canvas->data(), G_x, width * height * sizeof (RGBA));
+     //RGBA* G_x = conv1D_col(token, canvas->width(), canvas->height(),m_kernel_x_col);
+
 
     //calculate G_y
     RGBA* G_y = Convolve2D(canvas->data(), width, height, m_kernel_y);
-    //result = conv1D_row(canvas->data(), canvas->width(), canvas->height(), m_kernel_y_row);
-    //memcpy(canvas->data(), result, width * height * sizeof (RGBA));
-    //RGBA * G_y =conv1D_col(result, canvas->width(), canvas->height(), m_kernel_y_col);
+   // token = conv1D_row(canvas->data(), canvas->width(), canvas->height(), m_kernel_y_row);
+
+   // RGBA * G_y =conv1D_col(token, canvas->width(), canvas->height(), m_kernel_y_col);
 
     std::cout<<"created G_x, G_y"<<std::endl;
     for(int i = 0; i < height; i++)
@@ -62,7 +62,7 @@ void FilterSobel::apply(Canvas2D* canvas)
             float token_y = (float)(G_y[i * width + j].r);
             float token = sqrt( pow(token_x, 2) + pow(token_y, 2) );
             token *= m_sense;
-            std::cout<<"tokrn_x: "<<token_x<<"token_y: "<<token_y<<" ,token: "<<token<<std::endl;
+           // std::cout<<"tokrn_x: "<<token_x<<"token_y: "<<token_y<<" ,token: "<<token<<std::endl;
 
             token = token <= 255 ? token : 255;
             result[i * width + j].r = static_cast<int>(token);
@@ -80,67 +80,3 @@ void FilterSobel::apply(Canvas2D* canvas)
 
 }
 
-/*
-//-------------------------------------------------------
-void FilterSobel::apply(Canvas2D *canvas){
-
-    std::cout<<"his sobel aplly"<<std::endl;
-    glm::vec3 x1 = glm::vec3( 1.0f,  2.0f,  1.0f);
-
-    glm::vec3 x2 = glm::vec3(-1.0f,  0.0f,  1.0f);
-
-    glm::vec3 y1 = glm::vec3( 1.0f,  2.0f,  1.0f);
-
-    glm::vec3 y2 = glm::vec3( 1.0f,  0.0f, -1.0f);
-
-
-
-
-     grayFilter.apply(canvas);
-
-
-
-
-    float* x = Conv2dByVecs(canvas, x1, x2);
-
-    float* y = Conv2dByVecs(canvas, y1, y2);
-
-
-
-
-    int width = canvas->width();
-
-    int height = canvas->height();
-
-    RGBA* data = canvas->data();
-
-
-
-
-    for(int i = 1; i < height; i++) {
-
-        for (int j = 1; j < width; j++){
-
-            int idx = i * width + j;
-
-            float f = sqrt(pow(x[idx], 2) + pow(y[idx], 2)) / 255.0f;
-
-            f = f * m_sense;
-
-            unsigned char v = REAL2byte(f);
-
-            data[idx] = RGBA(v, v, v, 255);
-
-        }
-
-    }
-
-
-
-
-    delete[] x;
-
-    delete[] y;
-
-}
-*/
