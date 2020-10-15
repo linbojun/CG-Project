@@ -5,7 +5,7 @@
 
 FilterBlur::FilterBlur(int radius_):
     radius(radius_){
-    //initializeFilter();
+    initializeFilter();
 
 
 }
@@ -18,34 +18,51 @@ FilterBlur::~FilterBlur()
 void FilterBlur::apply(Canvas2D *canvas)
 {
     int width  = canvas->width(), height = canvas->height();
-    //RGBA result[width * height];
+
     //Convolve2D(canvas->data(), height, width, m_kernel);
-   box_conv_row(canvas);
-   box_conv_col(canvas);
+   //box_conv_row(canvas);
+   //box_conv_col(canvas);
+   RGBA* token = conv1D_row(canvas->data(), width, height, m_kernel_x);
+   memcpy(canvas->data(), token, width * height * sizeof(RGBA));
+   token = conv1D_col(canvas->data(), width, height, m_kernel_x);
+   memcpy(canvas->data(), token, width * height * sizeof(RGBA));
 
 
 }
-/*
+
 void FilterBlur::initializeFilter()
 {
-    float size = pow(2*radius+1, 2);
+    float size = 2*radius+1;
     //update m_kernel_y :: along  height
-    float k = -1/(float)radius, b = 1;
+    float k = -1/(radius), b = 1;
     std::cout<<"k: "<<k<<std::endl;
-    for(int y = -radius; y <= radius; y++)
+    for(int i = -radius+1;i <= radius-1; i++)
     {
-        //float k_y = -1/(float)radius, b_y = 1;
-        //std::cout<<"k_y: "<<k_y<<std::endl;
-        for(int x = -radius; x <= radius; x++)
-        {
-           float y_ele = k * std::abs(y) +b;
-           float x_ele = k * std::abs(x) + b;
-           m_kernel.push_back(y_ele * x_ele/ size);
-        }
-        //m_kernel_x.push_back()
+        float y = (k * std::abs(i) + b)/(size-2);
+        m_kernel_x.push_back(y);
+       //m_kernel_x.push_back()
     }
 
 }
+/*
+void FilterBlur::triangle_row(Canvas2D * canvas)
+{
+    float box_size = 2*radius+1;
+    int width = canvas->width(), height = canvas->height();
+    RGBA result[width * height];
+    for(int i = 0; i < height; i++)
+    {
+        for(int j = 0; j < width; j++)
+        {
+            for(int m  = -radius; m <= radius; m++)
+            {
+
+            }
+        }
+    }
+
+}
+
 /*
 void FilterBlur::box_conv(Canvas2D* canvas)
 {
@@ -98,10 +115,10 @@ void FilterBlur::box_conv_row(Canvas2D* canvas)
    // std::vector<float> result_g;
    // std::vector<float> result_b;
 
-    std::vector<std::shared_ptr<std::vector<float>>> normal_data = normal(canvas->data(), width, height);
-    std::shared_ptr<std::vector<float>> red_channel = normal_data.at(0);
-    std::shared_ptr<std::vector<float>> green_channel = normal_data.at(1);
-    std::shared_ptr<std::vector<float>> blue_channel = normal_data.at(2);
+    std::vector<std::vector<float>*>* normal_data = normal(canvas->data(), width, height);
+    std::vector<float>* red_channel = normal_data->at(0);
+    std::vector<float>* green_channel = normal_data->at(1);
+    std::vector<float>* blue_channel = normal_data->at(2);
     for(int i = 0; i < height; i++)
     {
         for(int j = 0; j < width; j++)
@@ -159,6 +176,10 @@ void FilterBlur::box_conv_row(Canvas2D* canvas)
             }
         }
     }
+    delete normal_data;
+    delete red_channel;
+    delete green_channel;
+    delete blue_channel;
     memcpy(canvas->data(), result, width * height * sizeof(RGBA));
 
 }
@@ -172,10 +193,10 @@ void FilterBlur::box_conv_col(Canvas2D* canvas)
    // std::vector<float> result_g;
    // std::vector<float> result_b;
 
-    std::vector<std::shared_ptr<std::vector<float>>> normal_data = normal(canvas->data(), width, height);
-    std::shared_ptr<std::vector<float>> red_channel = normal_data.at(0);
-    std::shared_ptr<std::vector<float>> green_channel = normal_data.at(1);
-    std::shared_ptr<std::vector<float>> blue_channel = normal_data.at(2);
+    std::vector<std::vector<float>*>* normal_data = normal(canvas->data(), width, height);
+    std::vector<float>* red_channel = normal_data->at(0);
+    std::vector<float>* green_channel = normal_data->at(1);
+    std::vector<float>* blue_channel = normal_data->at(2);
     for(int i = 0; i < height; i++)
     {
         for(int j = 0; j < width; j++)
@@ -234,6 +255,10 @@ void FilterBlur::box_conv_col(Canvas2D* canvas)
             }
         }
     }
+    delete normal_data;
+    delete red_channel;
+    delete green_channel;
+    delete blue_channel;
     memcpy(canvas->data(), result, width * height * sizeof(RGBA));
 
 }

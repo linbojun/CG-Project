@@ -1,6 +1,8 @@
 
 #ifndef Filter_H
 #define Filter_H
+#include <glm/glm.hpp>
+#include "GL/glew.h"
 
 #include <assert.h>
 #include <vector>
@@ -31,8 +33,16 @@ public:
     RGBA* Convolve2D(RGBA* data, int width, int height, const std::vector<float> &kernel);
     RGBA* conv1D_col(RGBA* data, int width, int height, const std::vector<float> &kernel);
     RGBA* conv1D_row(RGBA* data, int width, int height, const std::vector<float> &kernel);
+    std::vector<std::vector<float>*>* conv1D_row_vec(RGBA* data, int width, int height, const std::vector<float> &kernel);
+
+
     void normalization(RGBA* data, int width, int height, std::vector<std::vector<float>*> *container);
-    std::vector<std::shared_ptr<std::vector<float>>> normal(RGBA* data, int width, int height);
+    std::vector<std::vector<float>*>* normal(RGBA* data, int width, int height);
+
+protected:
+    float* Conv2dByVecs(Canvas2D * canvas, glm::vec3 k1, glm::vec3 k2);
+    float convolution(std::vector<float>input, std::vector<float> kernel);
+
 
 };
 
