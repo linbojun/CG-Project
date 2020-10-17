@@ -22,47 +22,43 @@ void FilterScaling::apply(Canvas2D *canvas)
 {
     std::cout<<"run scaling apply"<<std::endl;
     conv_x(canvas);
+    std::cout<<"finish canv_x in apply"<<std::endl;
     conv_y(canvas);
+     std::cout<<"finish canv_y in apply"<<std::endl;
 
 }
 void FilterScaling::conv_x(Canvas2D* canvas)
 {
     if(_x == 1)
         return;
-     std::cout<<"run scaling conv_x"<<std::endl;
+    // std::cout<<"run scaling conv_x"<<std::endl;
     int old_width = canvas->width();
     int old_height = canvas->height();
     new_width = old_width * _x;
-    RGBA result[new_width * old_height];
+
+    RGBA* result = new RGBA[new_width * old_height];
+  //  std::cout<<"start_loop"<<std::endl;
     for(int i = 0; i < old_height; i++)
     {
-        /*
-        std::vector<float> red_chan;
-        std::vector<float> green_chan;
-        std::vector<float> blue_chan;
-        for(int j = 0; j < old_width; j ++)
-        {
-            red_chan.push_back((float)canvas->data()[i * old_width + j].r);
-            green_chan.push_back((float)canvas->data()[i * old_width + j].g);
-            blue_chan.push_back((float)canvas->data()[i * old_width + j].b);
-        }
-        */
+
         for(int j = 0; j < new_width; j++)
         {
             result[i * new_width + j] = conv_x_cell(canvas, j, i);
         }
    //     std::cout<<"finish line: "<<i<<std::endl;
     }
-    std::cout<<"finish whole image"<<std::endl;
+    //std::cout<<"finish whole image"<<std::endl;
     canvas->resize(new_width, old_height);
+    //std::cout<<"finish resize"<<std::endl;
     memcpy(canvas->data(), result, new_width * old_height * sizeof(RGBA));
+    delete[] result;
 }
 
 RGBA FilterScaling::conv_x_cell(Canvas2D* canvas, int x_pos, int y_pos)
 {
   //   std::cout<<"run scaling conv_x_csll on"<<x_pos<<", "<<y_pos<<std::endl;
     int old_width = canvas->width(), old_height = canvas->height();
-   // std::cout<<"old_width: "<<old_width<<", old_height"<<old_height<<", old_size"<<old_width*old_height<<std::endl;
+ //   std::cout<<"old_width: "<<old_width<<", old_height"<<old_height<<", old_size"<<old_width*old_height<<std::endl;
     RGBA* data = canvas->data();
     if(_x == 1)
         return canvas->data()[y_pos * old_width + x_pos];
@@ -79,7 +75,7 @@ RGBA FilterScaling::conv_x_cell(Canvas2D* canvas, int x_pos, int y_pos)
         int index = i;
         float dist = std::abs(center_x - i);
         float weight = k * dist + b;
-       // std::cout<<"weight: "<<k * dist + b<<std::endl;
+   //     std::cout<<"weight: "<<k * dist + b<<std::endl;
         if(i < 0)
             index = 0;
         if(i >= old_width)
@@ -91,8 +87,8 @@ RGBA FilterScaling::conv_x_cell(Canvas2D* canvas, int x_pos, int y_pos)
         weight_sum += weight;
 
     }
-   // std::cout<<"red_acc: "<<red_acc<<" green_acc: "<<green_acc<<" blue_acc: "<<blue_acc<<std::endl;
-   // std::cout<<"weight_len: "<<weight_sum<<std::endl;
+  //  std::cout<<"red_acc: "<<red_acc<<" green_acc: "<<green_acc<<" blue_acc: "<<blue_acc<<std::endl;
+ //   std::cout<<"weight_len: "<<weight_sum<<std::endl;
 
     char red_ = red_acc/weight_sum;
     char green_ = green_acc/weight_sum;
@@ -142,11 +138,11 @@ void FilterScaling::conv_y(Canvas2D* canvas)
 {
     if(_y == 1)
         return;
-     std::cout<<"run scaling conv_x"<<std::endl;
+     std::cout<<"run scaling conv_y"<<std::endl;
     int old_width = canvas->width();
     int old_height = canvas->height();
     new_height = old_height * _y;
-    RGBA result[old_width * new_height];
+    RGBA* result = new RGBA[old_width * new_height];
     for(int i = 0; i < new_height; i++)
     {
         /*
@@ -169,6 +165,7 @@ void FilterScaling::conv_y(Canvas2D* canvas)
     std::cout<<"finish whole image"<<std::endl;
     canvas->resize(old_width, new_height);
     memcpy(canvas->data(), result, old_width * new_height * sizeof(RGBA));
+    delete[] result;
 }
 
 RGBA FilterScaling::conv_y_cell(Canvas2D* canvas, int x_pos, int y_pos)

@@ -24,8 +24,10 @@ void FilterBlur::apply(Canvas2D *canvas)
    //box_conv_col(canvas);
    RGBA* token = conv1D_row(canvas->data(), width, height, m_kernel_x);
    memcpy(canvas->data(), token, width * height * sizeof(RGBA));
+   delete[] token;
    token = conv1D_col(canvas->data(), width, height, m_kernel_x);
    memcpy(canvas->data(), token, width * height * sizeof(RGBA));
+   delete[] token;
 
 
 }
