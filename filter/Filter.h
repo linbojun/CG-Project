@@ -30,18 +30,16 @@ public:
 
     virtual void apply(Canvas2D* canvas) = 0;
     unsigned char REAL2byte(float f);
-    RGBA* Convolve2D(RGBA* data, int width, int height, const std::vector<float> &kernel);
+    //RGBA* Convolve2D(RGBA* data, int width, int height, const std::vector<float> &kernel);
     RGBA* conv1D_col(RGBA* data, int width, int height, const std::vector<float> &kernel);
     RGBA* conv1D_row(RGBA* data, int width, int height, const std::vector<float> &kernel);
-    std::vector<std::vector<float>*>* conv1D_row_vec(RGBA* data, int width, int height, const std::vector<float> &kernel);
 
 
-    void normalization(RGBA* data, int width, int height, std::vector<std::vector<float>*> *container);
     std::vector<std::vector<float>*>* normal(RGBA* data, int width, int height);
 
 protected:
-    float* Conv2dByVecs(Canvas2D * canvas, glm::vec3 k1, glm::vec3 k2);
-    float convolution(std::vector<float>input, std::vector<float> kernel);
+    std::vector<float>* Convolve2D_Sobel(RGBA* data, int width, int height, const std::vector<float> &kernel);
+
 
 
 };

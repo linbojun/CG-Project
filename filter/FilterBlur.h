@@ -19,7 +19,7 @@ private:
     void box_conv_col(Canvas2D* canvas);
     void initializeFilter();
     std::vector<float> m_kernel_x;
-    std::vector<float> m_kernel_y;
+    //std::vector<float> m_kernel_y;
    // std::vector<float> m_kernel;
 
 

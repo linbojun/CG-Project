@@ -15,6 +15,8 @@ private:
     std::vector<float> m_kernel_y;
     FilterGray grayFilter;
     //void update_filter(std::vector<float> token);
+    std::vector<float>* Convolve2D_Sobel(RGBA* data, int width, int height, const std::vector<float> &kernel);
+
 
 public:
     FilterSobel(float para);

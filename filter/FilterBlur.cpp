@@ -36,12 +36,16 @@ void FilterBlur::initializeFilter()
     //update m_kernel_y :: along  height
     float k = -1/(radius), b = 1;
     std::cout<<"k: "<<k<<std::endl;
+    float weight_sum;
     for(int i = -radius+1;i <= radius-1; i++)
     {
-        float y = (k * std::abs(i) + b)/(size-2);
+        float y = (k * std::abs(i) + b);
+        weight_sum += y;
         m_kernel_x.push_back(y);
        //m_kernel_x.push_back()
     }
+    for(int i = 0; i < m_kernel_x.size(); i++)
+        m_kernel_x[i] /= weight_sum;
 
 }
 /*

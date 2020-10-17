@@ -1,13 +1,16 @@
 #include "FilterGray.h"
 #include "Canvas2D.h"
+#include <iostream>
 
-unsigned char RGBAToGray(const RGBA &pixel) {
+unsigned char FilterGray::RGBAToGray(const RGBA &pixel) {
 
-    float R = (int)pixel.r;
-    float G = (int)pixel.g;
-    float B = (int)pixel.b;
+    float R = (float)pixel.r/255.0;
+    float G = (float)pixel.g/255.0;
+    float B = (float)pixel.b/255.0;
     float Y = 0.299*R + 0.587*G + 0.114*B;
-    return (char)Y;
+    Y =  REAL2byte(Y);
+   // std::cout<<"Y: "<<Y<<std::endl;
+    return Y;
 
 }
 
@@ -30,7 +33,7 @@ void FilterGray::apply(Canvas2D *canvas) {
 
         for (int c = 0; c < canvas->width(); c++) {
 
-            char gray = RGBAToGray(*current_pixel);
+            unsigned char gray = RGBAToGray(*current_pixel);
 
             current_pixel->r = gray;
             current_pixel->g = gray;
