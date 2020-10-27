@@ -2,6 +2,7 @@
 #define SCENEVIEWSCENE_H
 
 #include "OpenGLScene.h"
+#include "Scene.h"
 
 #include <memory>
 
@@ -40,8 +41,6 @@ public:
     // pointer.  This will be used during the "modeler" lab, so don't worry about it for now.
     void setSelection(int x, int y);
 
-private:
-
 
 private:
 
@@ -59,6 +58,23 @@ private:
     std::unique_ptr<CS123::GL::Shader> m_wireframeShader;
     std::unique_ptr<CS123::GL::Shader> m_normalsShader;
     std::unique_ptr<CS123::GL::Shader> m_normalsArrowShader;
+
+    std::vector<std::shared_ptr<Shape>> m_shape_list;
+    std::vector<CS123SceneMaterial> m_material_list;
+
+   // std::shared_ptr<Scene> m_scene;
+//---------------------------shape scene------------------------
+    CS123SceneLightData  m_light;
+    CS123SceneMaterial   m_material;
+    void initializeSceneLight();
+    void renderPhongPass(SupportCanvas3D *context);
+    void setLights(const glm::mat4 viewMatrix);
+    void setPhongSceneUniforms();
+    glm::vec4 m_lightDirection = glm::normalize(glm::vec4(1.f, -1.f, -1.f, 0.f));
+    void clearLights();
+    void initializeSceneMaterial();
+
+
 
 };
 

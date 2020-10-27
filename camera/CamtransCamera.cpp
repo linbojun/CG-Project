@@ -29,6 +29,13 @@ void CamtransCamera::setAspectRatio(float a)
 {
     // @TODO: [CAMTRANS] Fill this in...
     m_aspectRatio = a;
+    float h_rad = m_thetaH;
+    float h = glm::tan(h_rad);
+    float w = m_aspectRatio * h;
+    float w_rad = glm::atan(w);
+
+    m_thetaW = w_rad;
+
     updateProjectionMatrix();
 
 }
@@ -180,13 +187,6 @@ void CamtransCamera::rotateW(float degrees) {
     glm::vec3 v = u0 * glm::sin(rad) +  v0 * glm::cos(rad);
     m_u = glm::vec4(u, 1);
     m_v = glm::vec4(v, 1);
-    m_u[0] = u[0];
-    m_u[1] = u[1];
-    m_u[2] = u[2];
-
-    m_v[0] = v[0];
-    m_v[1] = v[1];
-    m_v[2] = v[2];
     updateViewMatrix();
 
 }
