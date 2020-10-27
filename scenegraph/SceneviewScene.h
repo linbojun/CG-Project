@@ -64,15 +64,9 @@ private:
 
    // std::shared_ptr<Scene> m_scene;
 //---------------------------shape scene------------------------
-    CS123SceneLightData  m_light;
-    CS123SceneMaterial   m_material;
-    void initializeSceneLight();
-    void renderPhongPass(SupportCanvas3D *context);
-    void setLights(const glm::mat4 viewMatrix);
-    void setPhongSceneUniforms();
-    glm::vec4 m_lightDirection = glm::normalize(glm::vec4(1.f, -1.f, -1.f, 0.f));
+
     void clearLights();
-    void initializeSceneMaterial();
+
 
 
 

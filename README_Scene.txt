@@ -1,0 +1,2 @@
+In my parse class, I will parse the file about the primitives, corresponding transformation, global, light. Then I use addPrimitive, setGlobal, addLight to set up for individual scene object. 
+In the scene view class, after parse, the setting change will create all shapes according to primitive list created by parse function. In the renderGeometry, I will transform the shape then use shape.draw to draw.

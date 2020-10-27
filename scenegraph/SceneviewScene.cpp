@@ -27,6 +27,7 @@ SceneviewScene::SceneviewScene()
     loadWireframeShader();
     loadNormalsShader();
     loadNormalsArrowShader();
+
    // m_scene = std::make_shared<Scene>();
 
     //----------------shapeScene-----------
@@ -96,8 +97,6 @@ void SceneviewScene::setSceneUniforms(SupportCanvas3D *context) {
     m_phongShader->setUniform("useArrowOffsets", false);
     m_phongShader->setUniform("p" , camera->getProjectionMatrix());
     m_phongShader->setUniform("v", camera->getViewMatrix());
-    //------------shapeScene----------------------
-   //  m_phongShader->applyMaterial(m_material);
 }
 
 void SceneviewScene::setMatrixUniforms(Shader *shader, SupportCanvas3D *context) {
@@ -141,21 +140,19 @@ void SceneviewScene::renderGeometry() {
 
     int num_shape = m_shape_list.size();
     if(num_shape == 0)
-        return;
+       settingsChanged();
+        //return;
 
     for(int i = 0; i < num_shape; i++)
     {
         glm::mat4x4 token_trans =  m_transformation_list.at(i);
         m_phongShader->setUniform("m", m_transformation_list.at(i));
-        //std::cout << glm::to_string(token_trans) << std::endl<<std::endl;
+        std::cout << glm::to_string(token_trans) << std::endl<<std::endl;
+
         m_phongShader->applyMaterial(m_material_list.at(i));
         m_shape_list.at(i)->draw();
     }
 
-    //--------------shape ----------------
-    // m_phongShader->setUniform("m", glm::mat4(1.0f));
-    // Sphere sphere(10, 10);
-    // sphere.draw();
 
 }
 
@@ -197,7 +194,11 @@ void SceneviewScene::settingsChanged() {
         }
 
         //deal with material
-        m_material_list.push_back(m_primitive_list.at(i).material);
+       CS123SceneMaterial token = m_primitive_list.at(i).material;
+       token.cAmbient *= m_global.ka;
+       token.cDiffuse *= m_global.kd;
+       token.cSpecular*= m_global.ks;
+        m_material_list.push_back(token);
 
 
     }
@@ -207,14 +208,7 @@ void SceneviewScene::settingsChanged() {
 
 
 //-----------------------------shape Scene--------------------------------------------
-void SceneviewScene::initializeSceneLight() {
-    // Use a white directional light from the upper left corner
-    memset(&m_light, 0, sizeof(m_light));
-    m_light.type = LightType::LIGHT_DIRECTIONAL;
-    m_light.dir = m_lightDirection;
-    m_light.color.r = m_light.color.g = m_light.color.b = 1;
-    m_light.id = 0;
-}
+
 
 
 
