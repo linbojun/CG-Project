@@ -28,6 +28,7 @@
 #include "filter/FilterSobel.h"
 #include "filter/FilterBlur.h"
 #include "filter/FilterScaling.h"
+#include "SceneviewScene.h"
 
 Canvas2D::Canvas2D() :
     // @TODO: Initialize any pointers in this class here.
@@ -42,6 +43,9 @@ Canvas2D::Canvas2D() :
         m_brush = std::make_unique<SmudgeBrush>(settings.brushColor, settings.brushRadius);
     else if(settings.brushType == BRUSH_QUADRATIC)
          m_brush = std::make_unique<QuadraticBrush>(settings.brushColor, settings.brushRadius);
+    else
+         m_brush = std::make_unique<QuadraticBrush>(settings.brushColor, settings.brushRadius);
+
 
 }
 
@@ -78,6 +82,7 @@ void Canvas2D::settingsChanged() {
         m_brush = std::make_unique<SmudgeBrush>(settings.brushColor, settings.brushRadius);
     else if(settings.brushType == BRUSH_QUADRATIC)
          m_brush = std::make_unique<QuadraticBrush>(settings.brushColor, settings.brushRadius);
+
 
 
     std::cout << "Canvas2d::settingsChanged() called. Settings have changed" << std::endl;
@@ -150,16 +155,31 @@ void Canvas2D::filterImage() {
 // ********************************************************************************************
 
 void Canvas2D::setScene(RayScene *scene) {
+    std::cout<<"running set Scene"<<std::endl;
+
     m_rayScene.reset(scene);
+   // m_rayScene = std::make_unique<RayScene>(scene);
+   std::cout<<"finsih set Scene"<<std::endl;
 }
 
 void Canvas2D::renderImage(Camera *camera, int width, int height) {
+     std::cout<<"running Canvas2D::renderImage"<<std::endl;
     if (m_rayScene) {
         // @TODO: raytrace the scene based on settings
         //        YOU MUST FILL THIS IN FOR INTERSECT/RAY
 
+        this->resize(width, height);
+        if(settings.useMultiThreading){
+            m_rayScene->render_multithread(this, camera);
+        }
+        else{
+            m_rayScene->render(this, camera);
+        }
+
+
         // If you want the interface to stay responsive, make sure to call
         // QCoreApplication::processEvents() periodically during the rendering.
+         //QCoreApplication::processEvents();
 
     }
 }

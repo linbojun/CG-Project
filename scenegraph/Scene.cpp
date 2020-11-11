@@ -20,6 +20,14 @@ Scene::Scene(Scene &scene)
     // Make sure to copy over the lights and the scenegraph from the old scene,
     // as well as any other member variables your new scene will need.
 
+    this->m_global.ka = scene.m_global.ka;
+    this->m_global.kd = scene.m_global.kd;
+    this->m_global.ks = scene.m_global.ks;
+    this->m_global.kt = scene.m_global.kt;
+    this->m_light_list = scene.get_light_list();
+    this->m_transformation_list = scene.m_transformation_list;
+    this->m_primitive_list = scene.m_primitive_list;
+
 }
 
 Scene::~Scene()
@@ -174,3 +182,19 @@ glm::mat4x4 Scene::customization(CS123SceneTransformation* T)
     return ans;
 
 }
+
+/*
+CS123SceneGlobalData Scene::get_global(){
+    return m_global;
+}
+
+QList<CS123SceneLightData> Scene::get_light_list(){
+
+}
+
+QList<glm::mat4x4> Scene::get_transformation_list();
+
+QList<CS123ScenePrimitive> Scene::get_primitive_list();
+
+*/
+

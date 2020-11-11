@@ -27,8 +27,15 @@ public:
 
     static glm::mat4x4 customization(CS123SceneTransformation* T);
 
-
     static void traverTree(CS123SceneNode *root, glm::mat4x4 T, Scene *sceneToFill);
+
+    CS123SceneGlobalData get_global() {return m_global;};
+
+    QList<CS123SceneLightData> get_light_list() {return m_light_list;};
+
+    QList<glm::mat4x4> get_transformation_list() {return m_transformation_list;};
+
+    QList<CS123ScenePrimitive> get_primitive_list() {return m_primitive_list;};
 
 
 protected:

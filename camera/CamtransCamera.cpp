@@ -17,12 +17,12 @@ CamtransCamera::CamtransCamera()
     m_far = 30;
     m_thetaH = 60;
     m_aspectRatio = 1;
-    m_eye = glm::vec4(2, 2, 2, 0);
+    m_eye = glm::vec4(2, 2, 2, 1);
     glm::vec4 look = glm::vec4(0, 0, 0, 0) - m_eye;
 
     m_w = -glm::normalize(look);
     m_w[3] = 1;
-    m_up = glm::vec4(0,1,0,1);
+    m_up = glm::vec4(0,1,0,0);
 }
 
 void CamtransCamera::setAspectRatio(float a)

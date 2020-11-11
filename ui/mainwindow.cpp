@@ -11,6 +11,7 @@
 #include <math.h>
 #include <QFileDialog>
 #include <QMessageBox>
+#include <iostream>
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -382,6 +383,8 @@ void MainWindow::filterImage() {
 void MainWindow::renderImage() {
     // Make sure OpenGL gets a chance to update the OrbitCamera, which can only be done when
     // that tab is active (because it needs the OpenGL context for its matrix transforms)
+
+    std::cout<<"running MainWindow::renderImage"<<std::endl;
     ui->tabWidget->setCurrentIndex(TAB_3D);
     m_canvas3D->update();
     QApplication::processEvents();
@@ -390,7 +393,11 @@ void MainWindow::renderImage() {
 
     OpenGLScene *glScene = m_canvas3D->getScene();
     if (glScene) {
+        std::cout<<"running inside  if (glScene)"<<std::endl;
         // TODO: Set up RayScene from glScene and call ui->canvas2D->setScene()
+
+        RayScene* RS = new RayScene(*glScene);
+        ui->canvas2D->setScene(RS);
 
         // Disable the UI so the user can't interfere with the raytracing
         setAllEnabled(false);
@@ -402,7 +409,6 @@ void MainWindow::renderImage() {
         // Render the image
         QSize activeTabSize = ui->tabWidget->currentWidget()->size();
         ui->canvas2D->renderImage(m_canvas3D->getCamera(), activeTabSize.width(), activeTabSize.height());
-
         // Swap the "stop rendering" button for the "render" button
         ui->rayRenderButton->setHidden(false);
         ui->rayStopRenderingButton->setHidden(true);

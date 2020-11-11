@@ -1,0 +1,2 @@
+My ray trace is using multithread to do ray tracing. One thread trace the top film, one trace the bottom film. Each thread will iterate all shapes in the scene to check the intersection. When there is intersection with some shape, the t and the normal vector will be calculated to do the lighting.
+Not known bugs
