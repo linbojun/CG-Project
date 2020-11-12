@@ -33,13 +33,13 @@ private:
 
 
 
-    float cube_intersect(glm::mat4x4 transformation, glm::vec4 eye, glm::vec4 unit_d);
+    float cube_intersect(glm::mat4x4 transformation, glm::vec4 eye, glm::vec4 unit_d, float dist);
 
-    float cone_intersect(glm::mat4x4 transformation, glm::vec4 eye, glm::vec4 unit_d);
+    float cone_intersect(glm::mat4x4 transformation, glm::vec4 eye, glm::vec4 unit_d, float dist);
 
-    float cylinder_intersect(glm::mat4x4 transformation, glm::vec4 eye, glm::vec4 unit_d);
+    float cylinder_intersect(glm::mat4x4 transformation, glm::vec4 eye, glm::vec4 unit_d, float dist);
 
-    float sphere_intersect(glm::mat4x4 transformation, glm::vec4 eye, glm::vec4 unit_d);
+    float sphere_intersect(glm::mat4x4 transformation, glm::vec4 eye, glm::vec4 unit_d, float dist);
 
     glm::vec4 m_closest_normal;
 
