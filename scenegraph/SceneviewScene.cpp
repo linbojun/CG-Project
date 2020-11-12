@@ -148,8 +148,12 @@ void SceneviewScene::renderGeometry() {
         glm::mat4x4 token_trans =  m_transformation_list.at(i);
         m_phongShader->setUniform("m", m_transformation_list.at(i));
        // std::cout << glm::to_string(token_trans) << std::endl<<std::endl;
+        CS123SceneMaterial token = m_material_list.at(i);
+        token.cAmbient *= m_global.ka;
+        token.cDiffuse *= m_global.kd;
+        token.cSpecular*= m_global.ks;
 
-        m_phongShader->applyMaterial(m_material_list.at(i));
+        m_phongShader->applyMaterial(token);
         m_shape_list.at(i)->draw();
     }
 
@@ -195,9 +199,7 @@ void SceneviewScene::settingsChanged() {
 
         //deal with material
        CS123SceneMaterial token = m_primitive_list.at(i).material;
-       token.cAmbient *= m_global.ka;
-       token.cDiffuse *= m_global.kd;
-       token.cSpecular *= m_global.ks;
+
         m_material_list.push_back(token);
 
 

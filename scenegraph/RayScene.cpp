@@ -37,6 +37,7 @@ RGBA RayScene::rayTrace(glm::vec4 eye, glm::vec4 unit_d)
     int min_dist = -1;
     mtx.lock();
     for(int i = 0; i < m_primitive_list.size(); i++)
+   // for(int i = 1; i < 2; i++)
     {
 
         if(m_primitive_list.at(i).type == PrimitiveType::PRIMITIVE_CUBE)
@@ -85,7 +86,8 @@ RGBA RayScene::rayTrace(glm::vec4 eye, glm::vec4 unit_d)
         glm::vec4 token(0,0,0,0);
         CS123ScenePrimitive closest = m_primitive_list.at(min_dist);
         glm::vec4 intersect_pos = eye + dist * unit_d;
-    //std::cout<<glm::to_string(closest.material.cDiffuse)<<std::endl;
+        //std::cout<<glm::to_string(closest.material.cDiffuse)<<std::endl;
+
        token += closest.material.cAmbient;
        for( int i = 0; i < m_light_list.size(); i++)
        {
@@ -93,22 +95,22 @@ RGBA RayScene::rayTrace(glm::vec4 eye, glm::vec4 unit_d)
            //light_vec[3] = 0;
            light_vec = glm::normalize(light_vec);
 
-            token += m_light_list.at(i).color* (closest.material.cDiffuse *  glm::dot(m_closest_normal, light_vec));
+            token += m_light_list.at(i).color* (  closest.material.cDiffuse *  std::max(0.0f, glm::dot(m_closest_normal, light_vec)));
        }
-
 
       // std::cout<<"In ray trace: "<<std::endl;
       // std::cout<<"dist: "<<dist<<", min_dist: "<<min_dist<<std::endl<<std::endl;
-      std::cout<<"normal: "<<glm::to_string(m_closest_normal)<<std::endl;
+      // std::cout<<"normal: "<<glm::to_string(m_closest_normal)<<std::endl;
       // std::cout<<"light token: "<<glm::to_string(token)<<std::endl;
+
 
         result.r = REAL2byte(token[0]);
         result.g = REAL2byte(token[1]);
         result.b = REAL2byte(token[2]);
 
-       //result.r = 255;
-       //result.g = 255;
-       //result.b = 255;
+      //  result.r = 255;
+      //  result.g = 255;
+      //  result.b = 255;
 
 
      //   result.
@@ -146,10 +148,10 @@ void RayScene::render(Canvas2D *canvas, Camera* cam)
             glm::mat4x4 film_to_world = glm::inverse(cam->getScaleMatrix() * cam->getViewMatrix());
             glm::vec4 p_world = film_to_world * p_film;
             glm::vec4 d = (p_world-eye_world)/glm::length(p_world-eye_world);
-            std::cout<<"p_film: "<<glm::to_string(p_film)<<std::endl;
-            std::cout<<"p_world: "<<glm::to_string(p_world)<<std::endl;
-            std::cout<<"eye_world: "<<glm::to_string(eye_world)<<std::endl;
-            std::cout<<"unit_d: "<<glm::to_string(d)<<std::endl;
+            //std::cout<<"p_film: "<<glm::to_string(p_film)<<std::endl;
+            //std::cout<<"p_world: "<<glm::to_string(p_world)<<std::endl;
+            //std::cout<<"eye_world: "<<glm::to_string(eye_world)<<std::endl;
+            //std::cout<<"unit_d: "<<glm::to_string(d)<<std::endl;
             d[3] = 0;
             RGBA token = rayTrace(eye_world, d);
             result[(int)(y * width + x)] = token;
