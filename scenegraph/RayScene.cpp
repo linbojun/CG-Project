@@ -25,11 +25,6 @@ RayScene::RayScene(Scene &scene) :
         m_shapes.push_back(m_primitive_list.at(i));
         m_transformation.push_back(m_transformation_list.at(i));
     }
-
-
-
-
-
 }
 
 
@@ -41,7 +36,7 @@ RayScene::~RayScene()
 
 glm::vec4 RayScene::rayTrace(glm::vec4 eye, glm::vec4 unit_d, int depth)
 {
-    std::cout<<"ray tracing"<<std::endl;
+   // std::cout<<"ray tracing"<<std::endl;
    // std::cout<<"primitive_list size: "<<m_primitive_list.size()<<std::endl;
    glm::vec4 result(0,0,0,0);
     if(depth == 0)
@@ -56,13 +51,15 @@ glm::vec4 RayScene::rayTrace(glm::vec4 eye, glm::vec4 unit_d, int depth)
    int closest_index = std::get<2>(ans);
 
     if(closest_index != -1){
+        std::cout<<"closest_index: "<<closest_index<<std::endl;
         std::pair<float, glm::vec4> t_normal(t, normal);
         result += estimate_direct_light(closest_index, t_normal, unit_d, eye);
         if(settings.useReflection)
             result += estimate_indirect_light(closest_index, t_normal, unit_d, eye, depth);
 
     }
-
+    else
+        result = glm::vec4(1,1,1,0);
     return result;
 
 }
@@ -200,7 +197,7 @@ glm::vec4 RayScene::estimate_direct_light(int closest_index, std::pair<float, gl
     color += closest_primitive.material.cAmbient * m_global.ka;
   //  std::cout<<"material ambient: "<<glm::to_string(closest_primitive.material.cAmbient)<<std::endl;
   //  std::cout<<"global ka: "<<m_global.ka<<std::endl;
-  //  std::cout<<"Ambient color: "<<glm::to_string(color)<<std::endl;
+    std::cout<<"Ambient color: "<<glm::to_string(color)<<std::endl;
 
     for( int i = 0; i < m_light_list.size(); i++)
     {
@@ -267,8 +264,8 @@ glm::vec4 RayScene::directional_lighting(CS123SceneLightData dir_light,
     std::tuple<float, glm::vec4, int> token;
     glm::vec4 epsilon = 0.001f * normal;
     intersect_surf += epsilon;
-    token = iterate_traverse(intersect_surf, oppo_light_dir);
-    //token = tree_traverse(intersect_surf, oppo_light_dir);s
+    //token = iterate_traverse(intersect_surf, oppo_light_dir);
+    token = tree_traverse(intersect_surf, oppo_light_dir);
     int closest_index = std::get<2>(token);
 
 
@@ -290,9 +287,6 @@ glm::vec4 RayScene::directional_lighting(CS123SceneLightData dir_light,
               + m_global.ks * intersect_shape.material.cSpecular * pow(glm::dot(R, V), intersect_shape.material.shininess));
     return color;
 
-
-
-
 }
 
 
@@ -311,8 +305,8 @@ glm::vec4 RayScene::point_lighting(CS123SceneLightData point_light,
     glm::vec4 epsilon = 0.001f * normal;
     intersect_surf += epsilon;
     std::tuple<float, glm::vec4, int> token;
-    token = iterate_traverse(intersect_surf, oppo_light_dir);
-    //token = tree_traverse(intersect_surf, oppo_light_dir);
+    //token = iterate_traverse(intersect_surf, oppo_light_dir);
+    token = tree_traverse(intersect_surf, oppo_light_dir);
     int closest_index = std::get<2>(token);
 
     //light hit something, not estimate the light(shadow)
@@ -326,21 +320,34 @@ glm::vec4 RayScene::point_lighting(CS123SceneLightData point_light,
     atten = std::min(1.0f, atten_token);
 
     glm::vec4 light_vec = oppo_light_dir;
+   // std::cout<<"normal: "<<glm::to_string(normal)<<std::endl;
+   // std::cout<<"light_vec: "<<glm::to_string(light_vec)<<std::endl;
+   // std::cout<<"n dot light: "<<glm::dot(normal, light_vec)<<std::endl;
     glm::vec4 R = glm::normalize(2.0f * normal * glm::dot(normal, light_vec) - light_vec);
     glm::vec4 V = -sight_vect;
     //not hit anything, estimate the light
     color += atten * point_light.color
             * ( m_global.kd * intersect_shape.material.cDiffuse * std::max(0.0f, glm::dot(normal, light_vec))
-           //     );
+             //   );
               + m_global.ks * intersect_shape.material.cSpecular * pow(glm::dot(R, V), intersect_shape.material.shininess));
     return color;
 }
 
-
-
 void RayScene::render(Canvas2D *canvas, Camera* cam)
 {
-    m_tree = std::make_shared<OctTree>(m_shapes, m_transformation);
+    if(settings.useKDTree)
+         m_tree = std::make_shared<OctTree>(m_shapes, m_transformation);
+    if(settings.useMultiThreading)
+        render_multithread(canvas, cam);
+    else
+        render_singlethread(canvas, cam);
+}
+
+
+void RayScene::render_singlethread(Canvas2D *canvas, Camera* cam)
+{
+
+    std::cout<<"RayScene::render_singlethread(Canvas2D *canvas, Camera* cam), start render"<<std::endl;
     int width = canvas->width();
     int height = canvas->height();
     float width_f = width;
@@ -402,13 +409,24 @@ void RayScene::render_multithread(Canvas2D *canvas, Camera* cam)
 
     //int width = canvas->width();
     //int height = canvas->height();
-
     m_cam = cam;
     m_canvas = canvas;
     std::thread top(&RayScene::render_top, this);
     std::thread bot(&RayScene::render_bot, this);
     top.join();
     bot.join();
+    std::cout<<"# of lights: "<<m_light_list.size()<<std::endl;
+    for(auto cur_light:m_light_list){
+        std::cout<<"light type: ";
+        if(cur_light.type == LightType::LIGHT_AREA)
+            std::cout<< "light area" <<std::endl;
+        else if(cur_light.type == LightType::LIGHT_POINT)
+             std::cout<< "light point" <<std::endl;
+        else if(cur_light.type == LightType::LIGHT_SPOT)
+            std::cout<< "light spot" <<std::endl;
+        else if(cur_light.type == LightType::LIGHT_DIRECTIONAL)
+            std::cout<< "light directional" <<std::endl;
+    }
     std::cout<<"finish all film piexel"<<std::endl;
 }
 

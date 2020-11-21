@@ -1,4 +1,6 @@
 #include "OctTree.h"
+#include <iostream>
+#include "RayScene.h"
 //1 for points, 0 for vectors
 
 OctTree::OctTree(){
@@ -19,7 +21,7 @@ OctTree::OctTree(OctTree &tree){
     m_transforms = tree.m_transforms;
     m_shapes_bounding_boxs = tree.m_shapes_bounding_boxs;
     m_size = tree.m_size;
-    m_depth = tree.m_depth;
+
 
 
 }
@@ -30,7 +32,8 @@ OctTree::OctTree(std::vector<CS123ScenePrimitive> shapes, std::vector<glm::mat4x
     m_shapes = shapes;
     m_transforms = transformations;
     bounding_box root_box;
-    m_depth = 8;
+
+    m_root = new node;
 
     root_box.x_max = FLT_MIN;
     root_box.y_max = FLT_MIN;
@@ -67,7 +70,7 @@ OctTree::OctTree(std::vector<CS123ScenePrimitive> shapes, std::vector<glm::mat4x
         root_box.y_min = std::min(root_box.y_min,  box_token.y_min);
         root_box.z_min = std::min(root_box.z_min,  box_token.z_min);
         m_shapes_bounding_boxs.push_back(box_token);
-
+        m_root->index.push_back(i);
     }
 
     //make root node;
@@ -78,51 +81,82 @@ OctTree::OctTree(std::vector<CS123ScenePrimitive> shapes, std::vector<glm::mat4x
     root_box.y_min -= 0.001;
     root_box.z_min -= 0.001;
 
-    m_root = new node;
     m_root->box = root_box;
     grow(m_root, 0);
+    std::cout<<"---------------------------------"<<std::endl;
+    std::cout<<"finish building octree"<<std::endl;
+    std::cout<<"# of nodes: "<<m_nodes.size()<<std::endl;
+    std::cout<<"---------------------------------"<<std::endl;
+
 
 }
 
 OctTree::~OctTree(){
+    //calling destructor of OctTree
+     std::cout<<"start the destructor of OctTree"<<std::endl;
 
-    for(int i = 0; i < m_size; i++)
+
+    for(auto _node : m_nodes)
     {
-        delete m_nodes.at(i);
+        delete _node;
     }
+
+    std::cout<<"finish the destructor of OctTree"<<std::endl;
 }
 
 
 void OctTree::grow(node *root, int level)
 {
     m_nodes.push_back(root);
-    for(int i = 0; i < m_size; i++)
-    {
-        bounding_box b_box = m_shapes_bounding_boxs.at(i);
-        if(  (root->box.x_max >= b_box.x_max && b_box.x_max >= root->box.x_min)
-          || (root->box.x_max >= b_box.x_min && b_box.x_min >= root->box.x_min)
-          || (root->box.y_max >= b_box.y_max && b_box.y_max >= root->box.y_min)
-          || (root->box.y_max >= b_box.y_min && b_box.y_min >= root->box.y_min)
-          || (root->box.z_max >= b_box.z_max && b_box.z_max >= root->box.z_min)
-          || (root->box.z_max >= b_box.z_min && b_box.z_min >= root->box.z_min)
-             )
-           {
-              root->index.push_back(i);
+    if(root != m_root){
+        for(int i = 0; i < root->parent->index.size(); i++)
+        {
+            int index = root->parent->index.at(i);
+            bounding_box b_box = m_shapes_bounding_boxs.at(index);
+            if(  (root->box.x_max >= b_box.x_max && b_box.x_max >= root->box.x_min)
+              || (root->box.x_max >= b_box.x_min && b_box.x_min >= root->box.x_min)
+              || (root->box.y_max >= b_box.y_max && b_box.y_max >= root->box.y_min)
+              || (root->box.y_max >= b_box.y_min && b_box.y_min >= root->box.y_min)
+              || (root->box.z_max >= b_box.z_max && b_box.z_max >= root->box.z_min)
+              || (root->box.z_max >= b_box.z_min && b_box.z_min >= root->box.z_min)
+               )
+             {
+              root->index.push_back(index);
+             }
         }
-
     }
-   if(root->index.size() <= 3 || level >= m_depth)
+    std::cout<<"OctTree::grow with level: "<<level<<std::endl;
+    std::cout<<"with index size: "<<root->index.size()<<std::endl;
+
+   if(root->index.size() <= 5 || level >= m_depth)
        return;
 
     //create 8 children nodes
     node* top_front_left = new node;
+    top_front_left->parent = root;
+
     node* top_front_right = new node;
+    top_front_right->parent = root;
+
     node* top_back_left = new node;
+    top_back_left->parent = root;
+
     node* top_back_right = new node;
+    top_back_right->parent = root;
+
     node* bot_front_left = new node;
+    bot_front_left->parent = root;
+
     node* bot_front_right = new node;
+    bot_front_right->parent = root;
+
     node* bot_back_left = new node;
+    bot_back_left->parent = root;
+
     node* bot_back_right = new node;
+    bot_back_right->parent = root;
+
+
     root->chilren = {top_front_left, top_front_right, top_back_left, top_back_right,
                      bot_front_left, bot_front_right, bot_back_left, bot_back_right};
     //top-bot: z, front-back:x, right-left:y
@@ -193,21 +227,30 @@ void OctTree::grow(node *root, int level)
 
 node* OctTree::search(glm::vec4 eye, glm::vec4 unit_d)
 {
+  //  std::cout<<"running OctTree::search(glm::vec4 eye, glm::vec4 unit_d)"<<std::endl;
     return search_rec(m_root, eye, unit_d).first;
 }
 
 
 std::pair<node*, float> OctTree::search_rec(node* root, glm::vec4 eye, glm::vec4 unit_d)
 {
+ //   std::cout<<"running OctTree::search_rec(glm::vec4 eye, glm::vec4 unit_d)"<<std::endl;
+    std::pair<node*, float> ans(NULL, FLT_MAX);
     if(root == nullptr)
-        return std::pair<node*, float>(NULL, FLT_MAX);
-    float dist = intersect_box(root->box, eye, unit_d);
-    if(dist == FLT_MAX)
-        return std::pair<node*, float>(NULL, FLT_MAX);
-    std::pair<node*, float> ans(root, dist);
+        return ans;
+    bool hit = intersect_box(root->box, eye, unit_d);
+    if(hit == false)
+        return ans;
+
+    //if it is a leave/ return base case
+    if(root->chilren.size() == 0){
+        return search_base(root, eye, unit_d);
+    }
+
+    //recursion go to children
     for(auto child:root->chilren){
        std::pair<node*, float> token = search_rec(child, eye, unit_d);
-       if(token.second <= ans.second && token.first != NULL && token.first->index.size() > 0 )
+       if(token.second < ans.second && token.first != NULL && token.first->index.size() > 0 )
        {
            ans = token;
        }
@@ -216,8 +259,96 @@ std::pair<node*, float> OctTree::search_rec(node* root, glm::vec4 eye, glm::vec4
 
 }
 
+std::pair<node*, float> OctTree::search_base(node* root, glm::vec4 eye, glm::vec4 unit_d)
+{
+ //   std::cout<<"running OctTree::search_base(glm::vec4 eye, glm::vec4 unit_d)"<<std::endl;
+    float dist = FLT_MAX;
+    for(int i = 0; i < root->index.size(); i++)
+    {
+        int index = root->index.at(i);
+        if(m_shapes.at(index).type == PrimitiveType::PRIMITIVE_CONE)
+        {
+            std::pair<float, glm::vec4> token = RayScene::cone_intersect(m_transforms.at(index), eye, unit_d, dist);
+            dist = std::min(dist, token.first);
+        }
+        else if(m_shapes.at(index).type == PrimitiveType::PRIMITIVE_CUBE)
+        {
+            std::pair<float, glm::vec4> token = RayScene::cube_intersect(m_transforms.at(index), eye, unit_d, dist);
+            dist = std::min(dist, token.first);
+        }
+        else if(m_shapes.at(index).type == PrimitiveType::PRIMITIVE_SPHERE)
+        {
+            std::pair<float, glm::vec4> token = RayScene::sphere_intersect(m_transforms.at(index), eye, unit_d, dist);
+            dist = std::min(dist, token.first);
+        }
+        else if(m_shapes.at(index).type == PrimitiveType::PRIMITIVE_CYLINDER)
+        {
+            std::pair<float, glm::vec4> token = RayScene::cylinder_intersect(m_transforms.at(index), eye, unit_d, dist);
+            dist = std::min(dist, token.first);
+        }
+    }
+    std::pair<node*, float> ans(NULL, FLT_MAX);
+    if(dist < FLT_MAX)
+    {
+        ans.first = root;
+        ans.second = dist;
+    }
+    return ans;
+
+}
 
 
+
+
+bool OctTree::intersect_box(bounding_box box, glm::vec4 eye_world, glm::vec4 unit_d_world)
+{
+    float tmin = (box.x_min - eye_world.x) / unit_d_world.x;
+    float tmax = (box.x_max - eye_world.x) / unit_d_world.x;
+    if (tmin > tmax){
+        float token = tmin;
+        tmin = tmax;
+        tmax = token;
+    }
+    float tymin = (box.y_min - eye_world.y) / unit_d_world.y;
+    float tymax = (box.y_max - eye_world.y) / unit_d_world.y;
+    if(tymin > tymax)
+    {
+        float token = tymin;
+        tymin = tymax;
+        tymax = token;
+    }
+     if ((tmin > tymax) || (tymin > tmax))
+         return false;
+
+     if (tymin > tmin)
+         tmin = tymin;
+
+     if (tymax < tmax)
+         tmax = tymax;
+
+     float tzmin = (box.z_min - eye_world.z) / unit_d_world.z;
+     float tzmax = (box.z_max - eye_world.z) / unit_d_world.z;
+     if (tzmin > tzmax){
+         float token = tzmin;
+         tzmin = tzmax;
+         tzmax = token;
+
+     }
+     if ((tmin > tzmax) || (tzmin > tmax))
+          return false;
+     if (tzmin > tmin)
+            tmin = tzmin;
+
+        if (tzmax < tmax)
+            tmax = tzmax;
+
+        return true;
+
+
+}
+
+
+/*
 float OctTree::intersect_box(bounding_box box, glm::vec4 eye_world, glm::vec4 unit_d_world)
 {
     glm::vec4 box_center(0,0,0,1);
@@ -313,4 +444,6 @@ float OctTree::intersect_box(bounding_box box, glm::vec4 eye_world, glm::vec4 un
     return dist;
 
 }
+*/
+
 

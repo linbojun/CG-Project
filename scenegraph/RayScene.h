@@ -32,7 +32,17 @@ public:
 
     void render(Canvas2D *canvas, Camera* cam);
 
+    void render_singlethread(Canvas2D *canvas, Camera* cam);
+
     void render_multithread(Canvas2D *canvas, Camera* cam);
+
+    static std::pair<float, glm::vec4> cube_intersect(glm::mat4x4 transformation, glm::vec4 eye, glm::vec4 unit_d, float dist);
+
+    static std::pair<float, glm::vec4> cone_intersect(glm::mat4x4 transformation, glm::vec4 eye, glm::vec4 unit_d, float dist);
+
+    static std::pair<float, glm::vec4> cylinder_intersect(glm::mat4x4 transformation, glm::vec4 eye, glm::vec4 unit_d, float dist);
+
+    static std::pair<float, glm::vec4> sphere_intersect(glm::mat4x4 transformation, glm::vec4 eye, glm::vec4 unit_d, float dist);
 
 private:
     glm::vec4 rayTrace(glm::vec4 eye, glm::vec4 unit_d, int depth);
@@ -61,14 +71,6 @@ private:
                                        glm::vec4 normal,
                                        glm::vec4 sight_vec);
 
-
-    std::pair<float, glm::vec4> cube_intersect(glm::mat4x4 transformation, glm::vec4 eye, glm::vec4 unit_d, float dist);
-
-    std::pair<float, glm::vec4> cone_intersect(glm::mat4x4 transformation, glm::vec4 eye, glm::vec4 unit_d, float dist);
-
-    std::pair<float, glm::vec4> cylinder_intersect(glm::mat4x4 transformation, glm::vec4 eye, glm::vec4 unit_d, float dist);
-
-    std::pair<float, glm::vec4> sphere_intersect(glm::mat4x4 transformation, glm::vec4 eye, glm::vec4 unit_d, float dist);
 
     //glm::vec4 m_closest_normal;
 

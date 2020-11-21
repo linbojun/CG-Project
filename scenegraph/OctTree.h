@@ -16,7 +16,7 @@ struct bounding_box{
 };
 
 struct node{
-
+    node *parent;
     std::vector<int> index;
     bounding_box box;
     std::vector<node *>chilren;
@@ -45,7 +45,19 @@ private:
 
     std::pair<node*, float> search_rec(node* root, glm::vec4 eye, glm::vec4 unit_d);
 
-    float intersect_box(bounding_box box, glm::vec4 eye_world, glm::vec4 unit_d_world);
+    std::pair<node*, float> search_base(node* root, glm::vec4 eye, glm::vec4 unit_d);
+
+    bool intersect_box(bounding_box box, glm::vec4 eye_world, glm::vec4 unit_d_world);
+
+    //std::pair<float, glm::vec4> cube_intersect(glm::mat4x4 obj2world, glm::vec4 eye, glm::vec4 unit_d);
+
+    //std::pair<float, glm::vec4> cone_intersect(glm::mat4x4 transformation, glm::vec4 eye, glm::vec4 unit_d);
+
+    //std::pair<float, glm::vec4> cylinder_intersect(glm::mat4x4 transformation, glm::vec4 eye, glm::vec4 unit_d);
+
+    //std::pair<float, glm::vec4> sphere_intersect(glm::mat4x4 transformation, glm::vec4 eye, glm::vec4 unit_d);
+
+
 
 
     std::vector<node *> m_nodes;
@@ -54,14 +66,10 @@ private:
     std::vector<glm::mat4x4> m_transforms;
     std::vector<bounding_box> m_shapes_bounding_boxs;
     int m_size;
-    int m_depth;
-
-
-
-
-
+    const int m_depth = 6;
 
 };
+
 
 
 #endif

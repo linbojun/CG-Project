@@ -169,12 +169,7 @@ void Canvas2D::renderImage(Camera *camera, int width, int height) {
         //        YOU MUST FILL THIS IN FOR INTERSECT/RAY
 
         this->resize(width, height);
-        if(settings.useMultiThreading == true){
-            m_rayScene->render_multithread(this, camera);
-        }
-        else{
-            m_rayScene->render(this, camera);
-        }
+         m_rayScene->render(this, camera);
 
 
         // If you want the interface to stay responsive, make sure to call
