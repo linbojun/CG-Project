@@ -169,7 +169,7 @@ void Canvas2D::renderImage(Camera *camera, int width, int height) {
         //        YOU MUST FILL THIS IN FOR INTERSECT/RAY
 
         this->resize(width, height);
-        if(settings.useMultiThreading){
+        if(settings.useMultiThreading == true){
             m_rayScene->render_multithread(this, camera);
         }
         else{

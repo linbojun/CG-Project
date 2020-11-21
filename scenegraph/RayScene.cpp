@@ -2,9 +2,12 @@
 #include "Settings.h"
 #include "CS123SceneData.h"
 
+
 #include <iostream>
 #include <thread>
 #include <glm/gtx/string_cast.hpp>
+#include <QCoreApplication>
+
 
 std::mutex mtx;
 
@@ -17,6 +20,13 @@ RayScene::RayScene(Scene &scene) :
     // be deleted when the old scene is deleted (assuming you are managing
     // all your memory properly to prevent memory leaks).  As a result, you
     // may need to re-allocate some things here.
+    for(int i = 0; i < m_primitive_list.size(); i++)
+    {
+        m_shapes.push_back(m_primitive_list.at(i));
+        m_transformation.push_back(m_transformation_list.at(i));
+    }
+
+
 
 
 
@@ -25,115 +35,319 @@ RayScene::RayScene(Scene &scene) :
 
 RayScene::~RayScene()
 {
-    std::cout<<"call ray scene destructor"<<std::endl;
-    //delete m_result;
+
 }
 
-RGBA RayScene::rayTrace(glm::vec4 eye, glm::vec4 unit_d)
+
+glm::vec4 RayScene::rayTrace(glm::vec4 eye, glm::vec4 unit_d, int depth)
 {
+    std::cout<<"ray tracing"<<std::endl;
    // std::cout<<"primitive_list size: "<<m_primitive_list.size()<<std::endl;
-    RGBA result(0, 0, 0);
-    float dist = FLT_MAX;
-    int min_dist = -1;
-    mtx.lock();
-    for(int i = 0; i < m_primitive_list.size(); i++)
-   // for(int i = 1; i < 2; i++)
-    {
+   glm::vec4 result(0,0,0,0);
+    if(depth == 0)
+        return result;
+    std::tuple<float, glm::vec4, int> ans;
+    if(settings.useKDTree == true)
+        ans = tree_traverse(eye, unit_d);
+    else
+        ans = iterate_traverse(eye, unit_d);
+   float t = std::get<0>(ans);
+   glm::vec4 normal = std::get<1>(ans);
+   int closest_index = std::get<2>(ans);
 
-        if(m_primitive_list.at(i).type == PrimitiveType::PRIMITIVE_CUBE)
-        {
-            float t = cube_intersect(m_transformation_list.at(i), eye, unit_d, dist);
-            if(t < dist)
-            {
-                dist = t;
-                min_dist = i;
-            }
-        }
-
-        else if(m_primitive_list.at(i).type == PrimitiveType::PRIMITIVE_CONE)
-        {
-            float t = cone_intersect(m_transformation_list.at(i), eye, unit_d, dist);
-            if(t < dist)
-            {
-                dist = t;
-                min_dist = i;
-            }
-        }
-
-        else if(m_primitive_list.at(i).type == PrimitiveType::PRIMITIVE_CYLINDER)
-        {
-            float t = cylinder_intersect(m_transformation_list.at(i), eye, unit_d, dist);
-            if(t < dist)
-            {
-                dist = t;
-                min_dist = i;
-            }
-        }
-        else if(m_primitive_list.at(i).type == PrimitiveType::PRIMITIVE_SPHERE)
-        {
-            float t = sphere_intersect(m_transformation_list.at(i), eye, unit_d, dist);
-            if(t < dist)
-            {
-                dist = t;
-                min_dist = i;
-            }
-        }
-
+    if(closest_index != -1){
+        std::pair<float, glm::vec4> t_normal(t, normal);
+        result += estimate_direct_light(closest_index, t_normal, unit_d, eye);
+        if(settings.useReflection)
+            result += estimate_indirect_light(closest_index, t_normal, unit_d, eye, depth);
 
     }
-
-    if(min_dist != -1){
-        glm::vec4 token(0,0,0,0);
-        CS123ScenePrimitive closest = m_primitive_list.at(min_dist);
-        glm::vec4 intersect_pos = eye + dist * unit_d;
-        //std::cout<<glm::to_string(closest.material.cDiffuse)<<std::endl;
-
-       token += closest.material.cAmbient;
-       for( int i = 0; i < m_light_list.size(); i++)
-       {
-           glm::vec4 light_vec = m_light_list.at(i).pos - intersect_pos ;
-           //light_vec[3] = 0;
-           light_vec = glm::normalize(light_vec);
-
-            token += m_light_list.at(i).color* (  closest.material.cDiffuse *  std::max(0.0f, glm::dot(m_closest_normal, light_vec)));
-       }
-
-      // std::cout<<"In ray trace: "<<std::endl;
-      // std::cout<<"dist: "<<dist<<", min_dist: "<<min_dist<<std::endl<<std::endl;
-      // std::cout<<"normal: "<<glm::to_string(m_closest_normal)<<std::endl;
-      // std::cout<<"light token: "<<glm::to_string(token)<<std::endl;
-
-
-        result.r = REAL2byte(token[0]);
-        result.g = REAL2byte(token[1]);
-        result.b = REAL2byte(token[2]);
-
-      //  result.r = 255;
-      //  result.g = 255;
-      //  result.b = 255;
-
-
-     //   result.
-      //  std::cout<<"light result: ("<<result.r<<"," <<result.g<<","<<result.b<<")"<<std::endl;
-
-    }
-    mtx.unlock();
 
     return result;
 
+}
+
+std::tuple<float, glm::vec4, int> RayScene::iterate_traverse(glm::vec4 eye, glm::vec4 unit_d)
+{
+    float dist = FLT_MAX;
+    int min_dist = -1;
+    glm::vec4 normal;
+
+    for(int i = 0; i < m_primitive_list.size(); i++)
+   // for(int i = 1; i < 2; i++)
+    {
+        int index = i;
+        if(m_primitive_list.at(index).type == PrimitiveType::PRIMITIVE_CUBE)
+        {
+            std::pair<float, glm::vec4> token = cube_intersect(m_transformation_list.at(index), eye, unit_d, dist);
+            if(token.first < dist && token.first > 0)
+            {
+                dist = token.first;
+                min_dist = index;
+                normal = token.second;
+            }
+        }
+
+        else if(m_primitive_list.at(index).type == PrimitiveType::PRIMITIVE_CONE)
+        {
+            std::pair<float, glm::vec4> token = cone_intersect(m_transformation_list.at(index), eye, unit_d, dist);
+            if(token.first < dist && token.first > 0)
+            {
+                dist = token.first;
+                min_dist = index;
+                normal = token.second;
+            }
+        }
+
+        else if(m_primitive_list.at(index).type == PrimitiveType::PRIMITIVE_CYLINDER)
+        {
+            std::pair<float, glm::vec4> token = cylinder_intersect(m_transformation_list.at(index), eye, unit_d, dist);
+            if(token.first < dist && token.first > 0)
+            {
+                dist = token.first;
+                min_dist = index;
+                normal = token.second;
+            }
+        }
+        else if(m_primitive_list.at(index).type == PrimitiveType::PRIMITIVE_SPHERE)
+        {
+            std::pair<float, glm::vec4> token = sphere_intersect(m_transformation_list.at(index), eye, unit_d, dist);
+            if(token.first < dist && token.first > 0)
+            {
+                dist = token.first;
+                min_dist = index;
+                normal = token.second;
+            }
+        }
+    }
+    std::tuple<float, glm::vec4, int> ans(dist, normal, min_dist);
+    return ans;
+}
+
+
+std::tuple<float, glm::vec4, int> RayScene::tree_traverse(glm::vec4 eye, glm::vec4 unit_d)
+{
+    float dist = FLT_MAX;
+    int min_dist = -1;
+    glm::vec4 normal;
+
+    node* node_token = m_tree->search(eye, unit_d);
+    if(node_token != NULL)
+    {
+        std::cout<< "size of node_token.index: "<<node_token->index.size()<<std::endl<<std::endl;;
+        for(int i = 0; i < node_token->index.size(); i++)
+        {
+            int index = node_token->index.at(i);
+            if(m_primitive_list.at(index).type == PrimitiveType::PRIMITIVE_CUBE)
+            {
+                std::pair<float, glm::vec4> token = cube_intersect(m_transformation_list.at(index), eye, unit_d, dist);
+                if(token.first < dist && token.first > 0)
+                {
+                    dist = token.first;
+                    min_dist = index;
+                    normal = token.second;
+                }
+            }
+
+            else if(m_primitive_list.at(index).type == PrimitiveType::PRIMITIVE_CONE)
+            {
+                std::pair<float, glm::vec4> token = cone_intersect(m_transformation_list.at(index), eye, unit_d, dist);
+                if(token.first < dist && token.first > 0)
+                {
+                    dist = token.first;
+                    min_dist = index;
+                    normal = token.second;
+                }
+            }
+
+            else if(m_primitive_list.at(index).type == PrimitiveType::PRIMITIVE_CYLINDER)
+            {
+                std::pair<float, glm::vec4> token = cylinder_intersect(m_transformation_list.at(index), eye, unit_d, dist);
+                if(token.first < dist && token.first > 0)
+                {
+                    dist = token.first;
+                    min_dist = index;
+                    normal = token.second;
+                }
+            }
+            else if(m_primitive_list.at(index).type == PrimitiveType::PRIMITIVE_SPHERE)
+            {
+                std::pair<float, glm::vec4> token = sphere_intersect(m_transformation_list.at(index), eye, unit_d, dist);
+                if(token.first < dist && token.first > 0)
+                {
+                    dist = token.first;
+                    min_dist = index;
+                    normal = token.second;
+                }
+            }
+        }
+
+    }
+     std::tuple<float, glm::vec4, int> ans(dist, normal, min_dist);
+     return ans;
+
+}
+
+glm::vec4 RayScene::estimate_direct_light(int closest_index, std::pair<float, glm::vec4> closest_data,  glm::vec4 unit_d, glm::vec4 eye)
+{
+    float t = closest_data.first;
+    glm::vec4 normal = closest_data.second;
+    CS123ScenePrimitive closest_primitive = m_primitive_list.at(closest_index);
+    glm::vec4 intersect_pos = eye + t * unit_d;
+    glm::vec4 color(0,0,0,0);
+
+
+    color += closest_primitive.material.cAmbient * m_global.ka;
+  //  std::cout<<"material ambient: "<<glm::to_string(closest_primitive.material.cAmbient)<<std::endl;
+  //  std::cout<<"global ka: "<<m_global.ka<<std::endl;
+  //  std::cout<<"Ambient color: "<<glm::to_string(color)<<std::endl;
+
+    for( int i = 0; i < m_light_list.size(); i++)
+    {
+        CS123SceneLightData cur_light = m_light_list.at(i);
+        if(cur_light.type == LightType::LIGHT_POINT && settings.usePointLights)
+            color += point_lighting(cur_light, intersect_pos, closest_primitive, normal, unit_d);
+
+        else if(cur_light.type == LightType::LIGHT_DIRECTIONAL && settings.useDirectionalLights)
+            color += directional_lighting(cur_light, intersect_pos, closest_primitive, normal, unit_d);
+
+        else if(cur_light.type == LightType::LIGHT_SPOT && settings.useSpotLights){
+
+            glm::vec4 light_vec = m_light_list.at(i).pos - intersect_pos;
+            light_vec = glm::normalize(light_vec);
+            float attenuation = 1;
+            glm::vec4 R = glm::normalize(2.0f * normal * glm::dot(normal, light_vec) - light_vec);
+            glm::vec4 V = -unit_d;
+
+             //n is the specular exponent
+            color += attenuation * m_light_list.at(i).color
+                     * ( m_global.kd * closest_primitive.material.cDiffuse * std::max(0.0f, glm::dot(normal, light_vec))
+                     //    );
+                       + m_global.ks * closest_primitive.material.cSpecular * pow(glm::dot(R, V), closest_primitive.material.shininess));
+
+        }
+
+    }
+  //  float num_light = m_light_list.size();
+  //  color *= 1.0f/num_light;
+
+    return color;
+}
+
+
+glm::vec4 RayScene::estimate_indirect_light(int closest_index, std::pair<float, glm::vec4> closest_data,  glm::vec4 unit_d, glm::vec4 eye, int depth)
+{
+    float t = closest_data.first;
+    glm::vec4 normal = closest_data.second;
+    glm::vec4 result(0,0,0,0);
+    if(depth == 0)
+        return result;
+    CS123ScenePrimitive closest_primitive = m_primitive_list.at(closest_index);
+    glm::vec4 intersect_pos = eye + t * unit_d;
+    glm::vec4 epsilon = 0.001f * normal;
+
+    glm::vec4 reflect_unit = glm::normalize(unit_d - 2.0f * normal * glm::dot(normal, unit_d));
+    result += rayTrace(intersect_pos + epsilon, reflect_unit, depth-1) * m_global.ks * closest_primitive.material.cReflective;
+
+   return result;
+
+}
+
+
+
+glm::vec4 RayScene::directional_lighting(CS123SceneLightData dir_light,
+                                         glm::vec4 intersect_surf,
+                                         CS123ScenePrimitive intersect_shape,
+                                         glm::vec4 normal,
+                                         glm::vec4 sight_vect)
+{
+    //not attenuation
+    glm::vec4 color(0,0,0,0);
+    glm::vec4 oppo_light_dir = glm::normalize(-dir_light.dir);
+    std::tuple<float, glm::vec4, int> token;
+    glm::vec4 epsilon = 0.001f * normal;
+    intersect_surf += epsilon;
+    token = iterate_traverse(intersect_surf, oppo_light_dir);
+    //token = tree_traverse(intersect_surf, oppo_light_dir);s
+    int closest_index = std::get<2>(token);
+
+
+    //light hit something, not estimate the light(shadow)
+    if(settings.useShadows && closest_index != -1)
+        return color;
+    glm::vec4 light_vec = oppo_light_dir;
+   // std::cout<<"normal: "<<glm::to_string(normal)<<std::endl;
+   // std::cout<<"light_vec: "<<glm::to_string(light_vec)<<std::endl;
+   // std::cout<<"n dot light: "<<glm::dot(normal, light_vec)<<std::endl;
+    glm::vec4 R = glm::normalize(2.0f * normal * glm::dot(normal, light_vec) - light_vec);
+    glm::vec4 V = -sight_vect;
+
+    //not hit anything, estimate the light
+    color +=  dir_light.color
+            * ( m_global.kd * intersect_shape.material.cDiffuse * std::max(0.0f, glm::dot(normal, light_vec))
+          //      glm::dot(normal, light_vec)
+          //      );
+              + m_global.ks * intersect_shape.material.cSpecular * pow(glm::dot(R, V), intersect_shape.material.shininess));
+    return color;
+
 
 
 
 }
 
+
+glm::vec4 RayScene::point_lighting(CS123SceneLightData point_light,
+                                   glm::vec4 intersect_surf,
+                                   CS123ScenePrimitive intersect_shape,
+                                   glm::vec4 normal,
+                                   glm::vec4 sight_vect)
+{
+    //with attenuation
+    glm::vec4 color(0,0,0,0);
+    float atten = 1;
+    intersect_surf[3] = 1;
+    glm::vec4 oppo_light_dir = glm::normalize(point_light.pos - intersect_surf);
+
+    glm::vec4 epsilon = 0.001f * normal;
+    intersect_surf += epsilon;
+    std::tuple<float, glm::vec4, int> token;
+    token = iterate_traverse(intersect_surf, oppo_light_dir);
+    //token = tree_traverse(intersect_surf, oppo_light_dir);
+    int closest_index = std::get<2>(token);
+
+    //light hit something, not estimate the light(shadow)
+    if(settings.useShadows && closest_index != -1)
+        return color;
+
+    float light_d = glm::length(point_light.pos - intersect_surf);
+    float  atten_token = 1.0f/(point_light.function.x
+                           + point_light.function.y * light_d
+                           + point_light.function.z * light_d * light_d);
+    atten = std::min(1.0f, atten_token);
+
+    glm::vec4 light_vec = oppo_light_dir;
+    glm::vec4 R = glm::normalize(2.0f * normal * glm::dot(normal, light_vec) - light_vec);
+    glm::vec4 V = -sight_vect;
+    //not hit anything, estimate the light
+    color += atten * point_light.color
+            * ( m_global.kd * intersect_shape.material.cDiffuse * std::max(0.0f, glm::dot(normal, light_vec))
+           //     );
+              + m_global.ks * intersect_shape.material.cSpecular * pow(glm::dot(R, V), intersect_shape.material.shininess));
+    return color;
+}
+
+
+
 void RayScene::render(Canvas2D *canvas, Camera* cam)
 {
-
+    m_tree = std::make_shared<OctTree>(m_shapes, m_transformation);
     int width = canvas->width();
     int height = canvas->height();
     float width_f = width;
     float height_f = height;
-    RGBA result[width * height];
+    m_canvas = canvas;
+    m_cam = cam;
+    RGBA* data = m_canvas->data();
     glm::vec4 eye = glm::vec4(0, 0, 0, 1);
     glm::vec4 eye_world = glm::inverse(cam->getViewMatrix()) * eye;
 
@@ -153,30 +367,49 @@ void RayScene::render(Canvas2D *canvas, Camera* cam)
             //std::cout<<"eye_world: "<<glm::to_string(eye_world)<<std::endl;
             //std::cout<<"unit_d: "<<glm::to_string(d)<<std::endl;
             d[3] = 0;
-            RGBA token = rayTrace(eye_world, d);
-            result[(int)(y * width + x)] = token;
+            glm::vec4 token = rayTrace(eye_world, d, reflect_times);
+            int index = y * width + x;
+            data[index] = RGBA(REAL2byte(token[0]), REAL2byte(token[1]), REAL2byte(token[2]));
+            if((int)x % 5 == 0)
+            {
+                 QCoreApplication::processEvents();
+                 m_canvas->update();
+            }
 
 
         }
     }
+    QCoreApplication::processEvents();
+    m_canvas->update();
+    std::cout<<"# of lights: "<<m_light_list.size()<<std::endl;
+    for(auto cur_light:m_light_list){
+        std::cout<<"light type: ";
+        if(cur_light.type == LightType::LIGHT_AREA)
+            std::cout<< "light area" <<std::endl;
+        else if(cur_light.type == LightType::LIGHT_POINT)
+             std::cout<< "light point" <<std::endl;
+        else if(cur_light.type == LightType::LIGHT_SPOT)
+            std::cout<< "light spot" <<std::endl;
+        else if(cur_light.type == LightType::LIGHT_DIRECTIONAL)
+            std::cout<< "light directional" <<std::endl;
+    }
     std::cout<<"finish all film piexel"<<std::endl;
-     memcpy(canvas->data(), result, width * height * sizeof(RGBA));
+    // memcpy(canvas->data(), result, width * height * sizeof(RGBA));
 }
 
 void RayScene::render_multithread(Canvas2D *canvas, Camera* cam)
 {
-    int width = canvas->width();
-    int height = canvas->height();
-    m_result = new RGBA[canvas->width() * canvas->height()];
+
+    //int width = canvas->width();
+    //int height = canvas->height();
+
     m_cam = cam;
     m_canvas = canvas;
     std::thread top(&RayScene::render_top, this);
     std::thread bot(&RayScene::render_bot, this);
     top.join();
     bot.join();
-     memcpy(canvas->data(), m_result, width * height * sizeof(RGBA));
-     delete m_result;
-     std::cout<<"finish all film piexel"<<std::endl;
+    std::cout<<"finish all film piexel"<<std::endl;
 }
 
 void RayScene::render_top()
@@ -188,6 +421,8 @@ void RayScene::render_top()
     float height_f = height;
     glm::vec4 eye = glm::vec4(0, 0, 0, 1);
     glm::vec4 eye_world = glm::inverse(m_cam->getViewMatrix()) * eye;
+    RGBA * data = m_canvas->data();
+
 
     for(float x = 0; x < width; x++)
     {
@@ -205,12 +440,19 @@ void RayScene::render_top()
           //  std::cout<<"eye_world: "<<glm::to_string(eye_world)<<std::endl;
           //  std::cout<<"unit_d: "<<glm::to_string(d)<<std::endl;
             d[3] = 0;
-            RGBA token = rayTrace(eye_world, d);
-            m_result[(int)(y * width + x)] = token;
-
+            glm::vec4 token = rayTrace(eye_world, d, reflect_times);
+            int index = y * width + x;
+            data[index] = RGBA(REAL2byte(token[0]), REAL2byte(token[1]), REAL2byte(token[2]));
+            if((int)x % 5 == 0)
+            {
+                 QCoreApplication::processEvents();
+                 m_canvas->update();
+            }
 
         }
     }
+    QCoreApplication::processEvents();
+    m_canvas->update();
     pthread_exit(NULL);
 }
 
@@ -222,6 +464,7 @@ void RayScene::render_bot()
     float height_f = height;
     glm::vec4 eye = glm::vec4(0, 0, 0, 1);
     glm::vec4 eye_world = glm::inverse(m_cam->getViewMatrix()) * eye;
+     RGBA * data = m_canvas->data();
 
     for(float x =  0; x < width; x++)
     {
@@ -239,21 +482,30 @@ void RayScene::render_bot()
             //std::cout<<"eye_world: "<<glm::to_string(eye_world)<<std::endl;
             //std::cout<<"unit_d: "<<glm::to_string(d)<<std::endl;
             d[3] = 0;
-            RGBA token = rayTrace(eye_world, d);
-            m_result[(int)(y * width + x)] = token;
+            glm::vec4 token = rayTrace(eye_world, d, reflect_times);
+            int index = y * width + x;
+            data[index] = RGBA(REAL2byte(token[0]), REAL2byte(token[1]), REAL2byte(token[2]));
+            if((int)x % 5 == 0)
+            {
+                 QCoreApplication::processEvents();
+                 m_canvas->update();
+            }
 
         }
     }
+    QCoreApplication::processEvents();
+    m_canvas->update();
    pthread_exit(NULL);
 }
 
 
-float RayScene::cube_intersect(glm::mat4x4 transformation, glm::vec4 eye, glm::vec4 unit_d, float dist)
+std::pair<float, glm::vec4> RayScene::cube_intersect(glm::mat4x4 obj2world, glm::vec4 eye, glm::vec4 unit_d, float dist)
 {
    //  std::cout<<"run cube_intersect"<<std::endl;
-    glm::vec4 eye_obj = glm::inverse(transformation) * eye;
-    glm::vec4 d_obj = glm::inverse(transformation) * unit_d;
-    glm::mat3 transform_token(transformation);
+    glm::mat4 world2obj = glm::inverse(obj2world);
+    glm::vec4 eye_obj = world2obj * eye;
+    glm::vec4 d_obj = world2obj * unit_d;
+    glm::mat3 transform_token(obj2world);
   //  std::cout<<"transformation: "<<glm::to_string(transformation)<<std::endl;
   //  std::cout<<"transform_token: "<<glm::to_string(transform_token)<<std::endl;
     //std::cout<<"eye_obj: "<<glm::to_string(eye_obj)<<std::endl;
@@ -262,13 +514,14 @@ float RayScene::cube_intersect(glm::mat4x4 transformation, glm::vec4 eye, glm::v
     //top side y = (0, 1, 0, 0) * transformation
     float t = (0.5 - eye_obj.y)/d_obj.y;
     glm::vec4 intersect_obj = eye_obj + t * d_obj;
+    glm::vec4 closest_normal;
     //std::cout<<"top intersect_obj: "<<glm::to_string(intersect_obj)<<std::endl;
     if(t >= 0 && t < dist && intersect_obj.x <= 0.5  && intersect_obj.x >= -0.5  && intersect_obj.z <= 0.5  &&intersect_obj.z >= -0.5 )
     {
         dist = std::min(dist, t);
         glm::vec3 normal(0,1,0);
         glm::vec3 token = glm::inverse(glm::transpose(transform_token)) * normal;
-        m_closest_normal = glm::vec4(token, 0);
+        closest_normal = glm::vec4(token, 0);
 
     }
 
@@ -282,7 +535,7 @@ float RayScene::cube_intersect(glm::mat4x4 transformation, glm::vec4 eye, glm::v
          glm::vec3 normal(0,-1,0);
 
          glm::vec3 token = glm::inverse(glm::transpose(transform_token)) * normal;
-         m_closest_normal = glm::vec4(token, 0);
+         closest_normal = glm::vec4(token, 0);
     }
 
     //right side x = 1
@@ -295,7 +548,7 @@ float RayScene::cube_intersect(glm::mat4x4 transformation, glm::vec4 eye, glm::v
          glm::vec3 normal(1,0,0);
 
          glm::vec3 token = glm::inverse(glm::transpose(transform_token)) * normal;
-         m_closest_normal = glm::vec4(token, 0);
+         closest_normal = glm::vec4(token, 0);
     }
 
     //left side x = -1
@@ -308,7 +561,7 @@ float RayScene::cube_intersect(glm::mat4x4 transformation, glm::vec4 eye, glm::v
          glm::vec3 normal(-1,0,0);
 
          glm::vec3 token = glm::inverse(glm::transpose(transform_token)) * normal;
-         m_closest_normal = glm::vec4(token, 0);
+         closest_normal = glm::vec4(token, 0);
     }
 
     //front side z= 1
@@ -321,7 +574,7 @@ float RayScene::cube_intersect(glm::mat4x4 transformation, glm::vec4 eye, glm::v
         glm::vec3 normal(0,0,1);
 
         glm::vec3 token = glm::inverse(glm::transpose(transform_token)) * normal;
-        m_closest_normal = glm::vec4(token, 0);
+        closest_normal = glm::vec4(token, 0);
 
     }
 
@@ -335,13 +588,16 @@ float RayScene::cube_intersect(glm::mat4x4 transformation, glm::vec4 eye, glm::v
          glm::vec3 normal(0,0,-1);
 
          glm::vec3 token = glm::inverse(glm::transpose(transform_token)) * normal;
-         m_closest_normal = glm::vec4(token, 0);
+         closest_normal = glm::vec4(token, 0);
     }
-    return dist;
+    closest_normal = glm::normalize(closest_normal);
+    std::pair<float, glm::vec4> ans(dist, closest_normal);
+
+    return ans;
 }
 
 
-float RayScene::cone_intersect(glm::mat4x4 transformation, glm::vec4 eye, glm::vec4 unit_d,  float dist)
+std::pair<float, glm::vec4> RayScene::cone_intersect(glm::mat4x4 transformation, glm::vec4 eye, glm::vec4 unit_d,  float dist)
 {
   //   std::cout<<"run cone_intersect"<<std::endl;
 
@@ -351,6 +607,7 @@ float RayScene::cone_intersect(glm::mat4x4 transformation, glm::vec4 eye, glm::v
     glm::vec4 d = d_obj;
     glm::vec4 intersect_obj;
     glm::mat3 transform_token(transformation);
+    glm::vec4 closest_normal;
    // std::cout<<"transformation: "<<glm::to_string(transformation)<<std::endl;
   //  std::cout<<"transform_token: "<<glm::to_string(transform_token)<<std::endl;
 
@@ -369,7 +626,7 @@ float RayScene::cone_intersect(glm::mat4x4 transformation, glm::vec4 eye, glm::v
                  glm::vec3 normal(2*intersect_obj.x, 0.5*intersect_obj.y - 0.25, 2*intersect_obj.z);
                  normal = glm::normalize(normal);
                  glm::vec3 token = glm::inverse(glm::transpose(transform_token)) * normal;
-                 m_closest_normal = glm::vec4(token, 0);
+                 closest_normal = glm::vec4(token, 0);
 
             }
        }
@@ -382,7 +639,7 @@ float RayScene::cone_intersect(glm::mat4x4 transformation, glm::vec4 eye, glm::v
                glm::vec3 normal(2*intersect_obj.x, 0.5*intersect_obj.y - 0.25, 2*intersect_obj.z);
                normal = glm::normalize(normal);
                glm::vec3 token = glm::inverse(glm::transpose(transform_token)) * normal;
-               m_closest_normal = glm::vec4(token, 0);
+               closest_normal = glm::vec4(token, 0);
 
            }
        }
@@ -399,14 +656,17 @@ float RayScene::cone_intersect(glm::mat4x4 transformation, glm::vec4 eye, glm::v
          dist = std::min(dist, t);
          glm::vec3 normal(0,-1,0);
          glm::vec3 token = glm::inverse(glm::transpose(transform_token)) * normal;
-         m_closest_normal = glm::vec4(token, 0);
+         closest_normal = glm::vec4(token, 0);
 
     }
-    return dist;
+    closest_normal = glm::normalize(closest_normal);
+    std::pair<float, glm::vec4> ans(dist, closest_normal);
+
+    return ans;
 
 }
 
-float RayScene::cylinder_intersect(glm::mat4x4 transformation, glm::vec4 eye, glm::vec4 unit_d,  float dist)
+std::pair<float, glm::vec4> RayScene::cylinder_intersect(glm::mat4x4 transformation, glm::vec4 eye, glm::vec4 unit_d,  float dist)
 {
  //   std::cout<<"run cylinder_intersect"<<std::endl;
     //float dist = FLT_MAX;
@@ -414,6 +674,7 @@ float RayScene::cylinder_intersect(glm::mat4x4 transformation, glm::vec4 eye, gl
     glm::vec4 d = glm::inverse(transformation) * unit_d;
     glm::vec4 intersect_obj;
     glm::mat3 transform_token(transformation);
+     glm::vec4 closest_normal;
    // std::cout<<"transformation: "<<glm::to_string(transformation)<<std::endl;
   //  std::cout<<"transform_token: "<<glm::to_string(transform_token)<<std::endl;
 
@@ -428,7 +689,7 @@ float RayScene::cylinder_intersect(glm::mat4x4 transformation, glm::vec4 eye, gl
          dist = std::min(dist, t);
          glm::vec3 normal(0,1,0);
          glm::vec3 token = glm::inverse(glm::transpose(transform_token)) * normal;
-         m_closest_normal = glm::vec4(token, 0);
+         closest_normal = glm::vec4(token, 0);
     }
 
     //bot cap
@@ -441,7 +702,7 @@ float RayScene::cylinder_intersect(glm::mat4x4 transformation, glm::vec4 eye, gl
         dist = std::min(dist, t);
         glm::vec3 normal(0,-1,0);
         glm::vec3 token = glm::inverse(glm::transpose(transform_token)) * normal;
-        m_closest_normal = glm::vec4(token, 0);
+        closest_normal = glm::vec4(token, 0);
     }
 
     //cylinder body
@@ -460,7 +721,7 @@ float RayScene::cylinder_intersect(glm::mat4x4 transformation, glm::vec4 eye, gl
                  glm::vec3 normal(2*intersect_obj.x, 0, 2*intersect_obj.z);
                  normal = glm::normalize(normal);
                  glm::vec3 token = glm::inverse(glm::transpose(transform_token)) * normal;
-                 m_closest_normal = glm::vec4(token, 0);
+                 closest_normal = glm::vec4(token, 0);
 
              }
         }
@@ -472,15 +733,18 @@ float RayScene::cylinder_intersect(glm::mat4x4 transformation, glm::vec4 eye, gl
                 glm::vec3 normal(2*intersect_obj.x, 0, 2*intersect_obj.z);
                 normal = glm::normalize(normal);
                 glm::vec3 token = glm::inverse(glm::transpose(transform_token)) * normal;
-                m_closest_normal = glm::vec4(token, 0);
+                closest_normal = glm::vec4(token, 0);
             }
         }
     }
-    return dist;
+     closest_normal = glm::normalize(closest_normal);
+   std::pair<float, glm::vec4> ans(dist, closest_normal);
+
+    return ans;
 
 }
 
-float RayScene::sphere_intersect(glm::mat4x4 transformation, glm::vec4 eye, glm::vec4 unit_d,  float dist)
+std::pair<float, glm::vec4> RayScene::sphere_intersect(glm::mat4x4 transformation, glm::vec4 eye, glm::vec4 unit_d,  float dist)
 {
   //   std::cout<<"run sphere_intersect"<<std::endl;
    // float dist = FLT_MAX;
@@ -488,6 +752,7 @@ float RayScene::sphere_intersect(glm::mat4x4 transformation, glm::vec4 eye, glm:
     glm::vec4 d = glm::inverse(transformation) * unit_d;
     glm::vec4 intersect_obj;
     glm::mat3 transform_token(transformation);
+     glm::vec4 closest_normal;
    // std::cout<<"transformation: "<<glm::to_string(transformation)<<std::endl;
    // std::cout<<"transform_token: "<<glm::to_string(transform_token)<<std::endl;
 
@@ -505,7 +770,7 @@ float RayScene::sphere_intersect(glm::mat4x4 transformation, glm::vec4 eye, glm:
                  glm::vec3 normal(2*intersect_obj.x, 2*intersect_obj.y, 2*intersect_obj.z);
                  normal = glm::normalize(normal);
                  glm::vec3 token = glm::inverse(glm::transpose(transform_token)) * normal;
-                 m_closest_normal = glm::vec4(token, 0);
+                 closest_normal = glm::vec4(token, 0);
              }
         }
         if(t2 >= 0 && t2 < dist)
@@ -516,11 +781,14 @@ float RayScene::sphere_intersect(glm::mat4x4 transformation, glm::vec4 eye, glm:
                 glm::vec3 normal(2*intersect_obj.x, 2*intersect_obj.y, 2*intersect_obj.z);
                 normal = glm::normalize(normal);
                 glm::vec3 token = glm::inverse(glm::transpose(transform_token)) * normal;
-                m_closest_normal = glm::vec4(token, 0);
+                closest_normal = glm::vec4(token, 0);
             }
         }
     }
-    return dist;
+     closest_normal = glm::normalize(closest_normal);
+    std::pair<float, glm::vec4> ans(dist, closest_normal);
+
+    return ans;
 
 
 
