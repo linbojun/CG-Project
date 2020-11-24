@@ -916,35 +916,51 @@ glm::vec2 RayScene::map2cube(glm::vec4 intersect_surf_world, glm::mat4x4 obj2wor
     //std::cout<<"intersect_surf_obj.yz()"<<glm::to_string(intersect_surf_obj.yz())<<std::endl;
     //top
     if(abs(intersect_surf_obj.x - 0.5) <= 0.0001)
-    {
-       uv = intersect_surf_obj.yz() + glm::vec2(0.5, 0.5);
+    {  // (0,1) - (0.5,0.5) = (-0.5,0.5) ->(1,0)
+       // (1,0) - (0.5,0.5) = (0.5,-0.5) ->(0,1)
+        uv[0] = intersect_surf_obj.z * -1 + 0.5;
+        uv[1] = intersect_surf_obj.y * -1 + 0.5;
+       //uv = intersect_surf_obj.yz() + glm::vec2(0.5, 0.5);
+       // uv = glm::vec2(0,0);
     }
     //bot
     else if(abs(intersect_surf_obj.x + 0.5) <= 0.0001)
     {
-       uv = intersect_surf_obj.yz() + glm::vec2(0.5, 0.5);
+        uv[0] = 1-(intersect_surf_obj.z * -1 + 0.5);
+        uv[1] =  intersect_surf_obj.y * -1 + 0.5;
+     //    uv = glm::vec2(0,0);
     }
-    //top
+
     else if(abs(intersect_surf_obj.y - 0.5) <= 0.0001)
     {
-        //left top (0.5,0.5) ->(0, 1)
+        //left top (0.5,0.5) ->(1, 1)
        uv = intersect_surf_obj.xz() + glm::vec2(0.5, 0.5);
+        // uv = glm::vec2(0,0);
     }
     //bot
     else if(abs(intersect_surf_obj.y + 0.5) <= 0.0001)
     {
-         //left top (0.5,0.5) ->(1, 1)
-       uv = glm::vec2(0.5, 0.5) + intersect_surf_obj.xz() ;
+         //(0,1) - (0.5,0.5) = (-0.5, 0.5) ->(1, 1)
+        //(1,1) - (0.5,0.5) = (0.5, 0.5) ->(1, 0)
+      // uv = glm::vec2(0.5, 0.5) + intersect_surf_obj.xz() ;
+        uv[0] = intersect_surf_obj.x + 0.5;
+        uv[1] = 1 - (intersect_surf_obj.z + 0.5);
+       //uv = intersect_surf_obj.xz() + glm::vec2(0.5, 0.5);
     }
 
     else if(abs(intersect_surf_obj.z - 0.5) <= 0.0001)
     {
        // (0.5,0.5) ->(1, 0)
-       uv = intersect_surf_obj.xy() + glm::vec2(0.5, 0.5);
+        uv[0] = intersect_surf_obj.x + 0.5;
+        uv[1] = 1 - (intersect_surf_obj.y + 0.5);
+
     }
     else if(abs(intersect_surf_obj.z + 0.5) <= 0.0001)
     {
-       uv = glm::vec2(0.5, 0.5) + intersect_surf_obj.xy() ;
+       //uv = glm::vec2(0.5, 0.5) + intersect_surf_obj.xy() ;
+        uv[0] = 1-(intersect_surf_obj.x + 0.5);
+        uv[1] = 1-(intersect_surf_obj.y + 0.5);
+
     }
     return uv;
 
@@ -956,10 +972,18 @@ glm::vec2 RayScene::map2cylinder(glm::vec4 intersect_surf_world, glm::mat4x4 obj
     glm::vec4 intersect_surf_obj = glm::inverse(obj2world) * intersect_surf_world;
     glm::vec2 uv(0.0f);
     //cap
-    if(abs(abs(intersect_surf_obj.y) - 0.5) <= 0.0001)
+    if(abs(intersect_surf_obj.y - 0.5) <= 0.0001)
     {
-        uv = intersect_surf_obj.xz() + glm::vec2(0.5, 0.5);
+       uv = intersect_surf_obj.xz() + glm::vec2(0.5, 0.5);
+        // uv = glm::vec2(0,0);
     }
+    //bot
+    else if(abs(intersect_surf_obj.y + 0.5) <= 0.0001)
+    {
+        uv[0] = intersect_surf_obj.x + 0.5;
+        uv[1] = 1 - (intersect_surf_obj.z + 0.5);
+    }
+
      // on body
     else
     {
@@ -982,7 +1006,8 @@ glm::vec2 RayScene::map2cone(glm::vec4 intersect_surf_world, glm::mat4x4 obj2wor
     //cap
     if(abs(abs(intersect_surf_obj.y) - 0.5) <= 0.0001)
     {
-       uv = intersect_surf_obj.xz() + glm::vec2(0.5, 0.5);
+        uv[0] = intersect_surf_obj.x + 0.5;
+        uv[1] = 1 - (intersect_surf_obj.z + 0.5);
     }
      // on body
     else
