@@ -2,11 +2,12 @@
 #include "Settings.h"
 #include "CS123SceneData.h"
 
-
+#include <math.h>
 #include <iostream>
 #include <thread>
 #include <glm/gtx/string_cast.hpp>
 #include <QCoreApplication>
+#include <unistd.h>
 
 
 std::mutex mtx;
@@ -24,6 +25,13 @@ RayScene::RayScene(Scene &scene) :
     {
         m_shapes.push_back(m_primitive_list.at(i));
         m_transformation.push_back(m_transformation_list.at(i));
+        char buff[FILENAME_MAX]; //create string buffer to hold path
+        getcwd( buff, FILENAME_MAX );
+        std::string current_working_dir(buff);
+        QString file_name = QString::fromStdString(current_working_dir + m_primitive_list.at(i).material.textureMap.filename);
+        //std::cout<<"textMap place 1, file_name: "<<m_primitive_list.at(i).material.textureMap.filename<<std::endl;
+        QImage image(file_name);
+        m_tetxures.push_back(image);
     }
 }
 
@@ -51,15 +59,14 @@ glm::vec4 RayScene::rayTrace(glm::vec4 eye, glm::vec4 unit_d, int depth)
    int closest_index = std::get<2>(ans);
 
     if(closest_index != -1){
-        std::cout<<"closest_index: "<<closest_index<<std::endl;
+        //std::cout<<"closest_index: "<<closest_index<<std::endl;
         std::pair<float, glm::vec4> t_normal(t, normal);
         result += estimate_direct_light(closest_index, t_normal, unit_d, eye);
         if(settings.useReflection)
             result += estimate_indirect_light(closest_index, t_normal, unit_d, eye, depth);
 
     }
-    else
-        result = glm::vec4(1,1,1,0);
+
     return result;
 
 }
@@ -165,6 +172,7 @@ std::tuple<float, glm::vec4, int> RayScene::tree_traverse(glm::vec4 eye, glm::ve
                     dist = token.first;
                     min_dist = index;
                     normal = token.second;
+                     std::cout<<"normal: "<<glm::to_string(normal)<<std::endl;
                 }
             }
             else if(m_primitive_list.at(index).type == PrimitiveType::PRIMITIVE_SPHERE)
@@ -180,6 +188,7 @@ std::tuple<float, glm::vec4, int> RayScene::tree_traverse(glm::vec4 eye, glm::ve
         }
 
     }
+
      std::tuple<float, glm::vec4, int> ans(dist, normal, min_dist);
      return ans;
 
@@ -189,6 +198,7 @@ glm::vec4 RayScene::estimate_direct_light(int closest_index, std::pair<float, gl
 {
     float t = closest_data.first;
     glm::vec4 normal = closest_data.second;
+
     CS123ScenePrimitive closest_primitive = m_primitive_list.at(closest_index);
     glm::vec4 intersect_pos = eye + t * unit_d;
     glm::vec4 color(0,0,0,0);
@@ -197,36 +207,79 @@ glm::vec4 RayScene::estimate_direct_light(int closest_index, std::pair<float, gl
     color += closest_primitive.material.cAmbient * m_global.ka;
   //  std::cout<<"material ambient: "<<glm::to_string(closest_primitive.material.cAmbient)<<std::endl;
   //  std::cout<<"global ka: "<<m_global.ka<<std::endl;
-    std::cout<<"Ambient color: "<<glm::to_string(color)<<std::endl;
+  //  std::cout<<"Ambient color: "<<glm::to_string(color)<<std::endl;
+    glm::vec4 texture_color(0.0);
+    if(settings.useTextureMapping && closest_primitive.material.textureMap.isUsed){
+        glm::vec2 uv(0.0);
+        if(closest_primitive.type == PrimitiveType::PRIMITIVE_CUBE){
+
+            uv = map2cube(intersect_pos, m_transformation_list.at(closest_index));
+            std::cout<<"finish running map2sphere(intersect_pos, m_transformation_list.at(closest_index))"<<std::endl;
+            std::cout<<"uv: "<<glm::to_string(uv)<<std::endl;
+            texture_color += textureMap(uv, closest_index);
+        }
+
+        else if(closest_primitive.type == PrimitiveType::PRIMITIVE_CONE){
+
+            uv = map2cone(intersect_pos, m_transformation_list.at(closest_index));
+            std::cout<<"finish running map2sphere(intersect_pos, m_transformation_list.at(closest_index))"<<std::endl;
+            std::cout<<"uv: "<<glm::to_string(uv)<<std::endl;
+            texture_color += textureMap(uv, closest_index);
+        }
+        else if(closest_primitive.type == PrimitiveType::PRIMITIVE_CYLINDER){
+
+            uv = map2cylinder(intersect_pos, m_transformation_list.at(closest_index));
+            std::cout<<"finish running map2sphere(intersect_pos, m_transformation_list.at(closest_index))"<<std::endl;
+            std::cout<<"uv: "<<glm::to_string(uv)<<std::endl;
+            texture_color += textureMap(uv, closest_index);
+        }
+        else if(closest_primitive.type == PrimitiveType::PRIMITIVE_SPHERE){
+
+            uv = map2sphere(intersect_pos, m_transformation_list.at(closest_index));
+            std::cout<<"finish running map2sphere(intersect_pos, m_transformation_list.at(closest_index))"<<std::endl;
+            std::cout<<"uv: "<<glm::to_string(uv)<<std::endl;
+            texture_color += textureMap(uv, closest_index);
+        }
+        std::cout<<"In :estimate_direct_light, text_color ouput: "<<glm::to_string(texture_color)<<std::endl;
+    }
 
     for( int i = 0; i < m_light_list.size(); i++)
     {
         CS123SceneLightData cur_light = m_light_list.at(i);
         if(cur_light.type == LightType::LIGHT_POINT && settings.usePointLights)
-            color += point_lighting(cur_light, intersect_pos, closest_primitive, normal, unit_d);
+            color += point_lighting(cur_light, intersect_pos, closest_primitive, normal, unit_d, texture_color);
 
         else if(cur_light.type == LightType::LIGHT_DIRECTIONAL && settings.useDirectionalLights)
-            color += directional_lighting(cur_light, intersect_pos, closest_primitive, normal, unit_d);
+            color += directional_lighting(cur_light, intersect_pos, closest_primitive, normal, unit_d, texture_color);
 
         else if(cur_light.type == LightType::LIGHT_SPOT && settings.useSpotLights){
 
-            glm::vec4 light_vec = m_light_list.at(i).pos - intersect_pos;
+            glm::vec4 light_vec =  intersect_pos-m_light_list.at(i).pos;
             light_vec = glm::normalize(light_vec);
-            float attenuation = 1;
             glm::vec4 R = glm::normalize(2.0f * normal * glm::dot(normal, light_vec) - light_vec);
             glm::vec4 V = -unit_d;
 
+
+            glm::vec4 diffuse_term(0.0);
+            float blend = closest_primitive.material.blend;
+
+            if(settings.useTextureMapping && closest_primitive.material.textureMap.isUsed)
+                diffuse_term = m_light_list.at(i).color
+                        * (blend * texture_color + (1 - blend) * m_global.kd * closest_primitive.material.cDiffuse )
+                        * std::max(0.0f, glm::dot(normal, light_vec));
+
+            else
+                diffuse_term = m_light_list.at(i).color * ( m_global.kd * closest_primitive.material.cDiffuse * std::max(0.0f, glm::dot(normal, light_vec)));
+
              //n is the specular exponent
-            color += attenuation * m_light_list.at(i).color
-                     * ( m_global.kd * closest_primitive.material.cDiffuse * std::max(0.0f, glm::dot(normal, light_vec))
-                     //    );
-                       + m_global.ks * closest_primitive.material.cSpecular * pow(glm::dot(R, V), closest_primitive.material.shininess));
+            color += diffuse_term
+                       + m_global.ks * closest_primitive.material.cSpecular * pow(glm::dot(R, V), closest_primitive.material.shininess);
 
         }
 
+
     }
-  //  float num_light = m_light_list.size();
-  //  color *= 1.0f/num_light;
+
 
     return color;
 }
@@ -256,8 +309,10 @@ glm::vec4 RayScene::directional_lighting(CS123SceneLightData dir_light,
                                          glm::vec4 intersect_surf,
                                          CS123ScenePrimitive intersect_shape,
                                          glm::vec4 normal,
-                                         glm::vec4 sight_vect)
+                                         glm::vec4 sight_vect,
+                                         glm::vec4 texture_color)
 {
+    std::cout<<"In directional_lighting, input texture_color: "<<glm::to_string(texture_color)<<std::endl;
     //not attenuation
     glm::vec4 color(0,0,0,0);
     glm::vec4 oppo_light_dir = glm::normalize(-dir_light.dir);
@@ -265,7 +320,10 @@ glm::vec4 RayScene::directional_lighting(CS123SceneLightData dir_light,
     glm::vec4 epsilon = 0.001f * normal;
     intersect_surf += epsilon;
     //token = iterate_traverse(intersect_surf, oppo_light_dir);
-    token = tree_traverse(intersect_surf, oppo_light_dir);
+    if(settings.useKDTree)
+        token = tree_traverse(intersect_surf, oppo_light_dir);
+    else
+        token = iterate_traverse(intersect_surf, oppo_light_dir);
     int closest_index = std::get<2>(token);
 
 
@@ -273,18 +331,29 @@ glm::vec4 RayScene::directional_lighting(CS123SceneLightData dir_light,
     if(settings.useShadows && closest_index != -1)
         return color;
     glm::vec4 light_vec = oppo_light_dir;
-   // std::cout<<"normal: "<<glm::to_string(normal)<<std::endl;
-   // std::cout<<"light_vec: "<<glm::to_string(light_vec)<<std::endl;
-   // std::cout<<"n dot light: "<<glm::dot(normal, light_vec)<<std::endl;
+    //std::cout<<"normal: "<<glm::to_string(normal)<<std::endl;
+    //std::cout<<"light_vec: "<<glm::to_string(light_vec)<<std::endl;
+    //std::cout<<"n dot light: "<<glm::dot(normal, light_vec)<<std::endl;
     glm::vec4 R = glm::normalize(2.0f * normal * glm::dot(normal, light_vec) - light_vec);
     glm::vec4 V = -sight_vect;
-
     //not hit anything, estimate the light
-    color +=  dir_light.color
-            * ( m_global.kd * intersect_shape.material.cDiffuse * std::max(0.0f, glm::dot(normal, light_vec))
-          //      glm::dot(normal, light_vec)
-          //      );
-              + m_global.ks * intersect_shape.material.cSpecular * pow(glm::dot(R, V), intersect_shape.material.shininess));
+    glm::vec4 diffuse_term(0.0);
+    float blend = intersect_shape.material.blend;
+    if(settings.useTextureMapping && intersect_shape.material.textureMap.isUsed){
+        diffuse_term = dir_light.color *
+                (blend * texture_color +(1 - blend) * m_global.kd *intersect_shape.material.cDiffuse)
+               * std::max(0.0f, glm::dot(normal, light_vec));
+    }
+    else{
+        diffuse_term = dir_light.color * ( m_global.kd *intersect_shape.material.cDiffuse * std::max(0.0f, glm::dot(normal, light_vec)));
+    }
+    //std::cout<<"blend: "<<blend<<std::endl;
+    //std::cout<<"In directional_lighting, the diffuse_term : "<<glm::to_string(diffuse_term)<<std::endl;
+    glm::vec4 specular_term =  m_global.ks * intersect_shape.material.cSpecular * pow(glm::dot(R, V), intersect_shape.material.shininess);
+    //std::cout<<"In directional_lighting, the specular_term: "<<glm::to_string(specular_term)<<std::endl;
+    color += diffuse_term + specular_term;
+    //std::cout<<"In directional_lighting, the final color: "<<glm::to_string(color)<<std::endl;
+
     return color;
 
 }
@@ -294,7 +363,8 @@ glm::vec4 RayScene::point_lighting(CS123SceneLightData point_light,
                                    glm::vec4 intersect_surf,
                                    CS123ScenePrimitive intersect_shape,
                                    glm::vec4 normal,
-                                   glm::vec4 sight_vect)
+                                   glm::vec4 sight_vect,
+                                   glm::vec4 texture_color)
 {
     //with attenuation
     glm::vec4 color(0,0,0,0);
@@ -305,12 +375,16 @@ glm::vec4 RayScene::point_lighting(CS123SceneLightData point_light,
     glm::vec4 epsilon = 0.001f * normal;
     intersect_surf += epsilon;
     std::tuple<float, glm::vec4, int> token;
-    //token = iterate_traverse(intersect_surf, oppo_light_dir);
-    token = tree_traverse(intersect_surf, oppo_light_dir);
+
+    if(settings.useKDTree)
+        token = tree_traverse(intersect_surf, oppo_light_dir);
+    else
+        token = iterate_traverse(intersect_surf, oppo_light_dir);
     int closest_index = std::get<2>(token);
+    float dist = std::get<0>(token);
 
     //light hit something, not estimate the light(shadow)
-    if(settings.useShadows && closest_index != -1)
+    if(settings.useShadows && closest_index != -1 && glm::length(point_light.pos - intersect_surf) > dist)
         return color;
 
     float light_d = glm::length(point_light.pos - intersect_surf);
@@ -320,21 +394,30 @@ glm::vec4 RayScene::point_lighting(CS123SceneLightData point_light,
     atten = std::min(1.0f, atten_token);
 
     glm::vec4 light_vec = oppo_light_dir;
-   // std::cout<<"normal: "<<glm::to_string(normal)<<std::endl;
-   // std::cout<<"light_vec: "<<glm::to_string(light_vec)<<std::endl;
-   // std::cout<<"n dot light: "<<glm::dot(normal, light_vec)<<std::endl;
+
     glm::vec4 R = glm::normalize(2.0f * normal * glm::dot(normal, light_vec) - light_vec);
     glm::vec4 V = -sight_vect;
     //not hit anything, estimate the light
-    color += atten * point_light.color
-            * ( m_global.kd * intersect_shape.material.cDiffuse * std::max(0.0f, glm::dot(normal, light_vec))
-             //   );
-              + m_global.ks * intersect_shape.material.cSpecular * pow(glm::dot(R, V), intersect_shape.material.shininess));
+    glm::vec4 diffuse_term(0.0);
+   // std::cout<<"normal:"<<glm::to_string(normal)<<std::endl;
+   // std::cout<<"light_vec"<<glm::to_string(light_vec)<<std::endl;
+   // std::cout<<"dot(normal, light_vdec): "<< glm::dot(normal, light_vec)<<std::endl;
+   //std::cout<<"light_pos: "<< glm::to_string(point_light.pos)<<std::endl;
+    if(settings.useTextureMapping && intersect_shape.material.textureMap.isUsed)
+        diffuse_term = diffuse_term = point_light.color *
+                (intersect_shape.material.blend * texture_color +(1 - intersect_shape.material.blend) * m_global.kd *intersect_shape.material.cDiffuse)
+                * std::max(0.0f, glm::dot(normal, light_vec));
+    else
+        diffuse_term = point_light.color * ( m_global.kd *intersect_shape.material.cDiffuse * std::max(0.0f, glm::dot(normal, light_vec)));
+
+    glm::vec4 specular_term = m_global.ks * intersect_shape.material.cSpecular * pow(glm::dot(R, V), intersect_shape.material.shininess);
+    color += atten * (diffuse_term +specular_term );
     return color;
 }
 
 void RayScene::render(Canvas2D *canvas, Camera* cam)
 {
+
     if(settings.useKDTree)
          m_tree = std::make_shared<OctTree>(m_shapes, m_transformation);
     if(settings.useMultiThreading)
@@ -615,53 +698,20 @@ std::pair<float, glm::vec4> RayScene::cube_intersect(glm::mat4x4 obj2world, glm:
 }
 
 
-std::pair<float, glm::vec4> RayScene::cone_intersect(glm::mat4x4 transformation, glm::vec4 eye, glm::vec4 unit_d,  float dist)
+std::pair<float, glm::vec4> RayScene::cone_intersect(glm::mat4x4 transformation, glm::vec4 eye, glm::vec4 unit_d,  float dist_)
 {
   //   std::cout<<"run cone_intersect"<<std::endl;
-
+    float dist = dist_;
     glm::vec4 eye_obj = glm::inverse(transformation) * eye;
     glm::vec4 d_obj = glm::inverse(transformation) * unit_d;
     glm::vec4 P = eye_obj;
     glm::vec4 d = d_obj;
     glm::vec4 intersect_obj;
     glm::mat3 transform_token(transformation);
-    glm::vec4 closest_normal;
+    glm::vec4 closest_normal(0.0f);
    // std::cout<<"transformation: "<<glm::to_string(transformation)<<std::endl;
   //  std::cout<<"transform_token: "<<glm::to_string(transform_token)<<std::endl;
 
-    //cone body intersect check
-    float A = pow(d.x, 2) + pow(d.z, 2) - 0.25*pow(d.y, 2);
-    float B = 2*P.x*d.x + 2*P.z*d.z - 0.5*P.y*d.y +0.25*d.y;
-    float C = pow(P.x, 2) + pow(P.z, 2) - 0.25*pow(P.y, 2) + 0.25*P.y - 1.f/16.f;
-    if(pow(B,2) - 4 * A * C >= 0)
-    {
-       float t1 = (-B + sqrt(pow(B,2) - 4*A*C))/(2*A);
-       float t2 = (-B - sqrt(pow(B,2) - 4*A*C))/(2*A);
-       if(t1 >= 0 && t1 < dist ){
-            glm::vec4 intersect_obj = P + t1 * d;
-            if(intersect_obj.y <= 0.5 && intersect_obj.y >= -0.5){
-                 dist = std::min(dist, t1);
-                 glm::vec3 normal(2*intersect_obj.x, 0.5*intersect_obj.y - 0.25, 2*intersect_obj.z);
-                 normal = glm::normalize(normal);
-                 glm::vec3 token = glm::inverse(glm::transpose(transform_token)) * normal;
-                 closest_normal = glm::vec4(token, 0);
-
-            }
-       }
-       if(t2 >= 0 && t2 < dist)
-       {
-           glm::vec4 intersect_obj = P + t2 * d;
-           if(intersect_obj.y <= 0.5 && intersect_obj.y >= -0.5){
-
-               dist = std::min(dist, t2);
-               glm::vec3 normal(2*intersect_obj.x, 0.5*intersect_obj.y - 0.25, 2*intersect_obj.z);
-               normal = glm::normalize(normal);
-               glm::vec3 token = glm::inverse(glm::transpose(transform_token)) * normal;
-               closest_normal = glm::vec4(token, 0);
-
-           }
-       }
-    }
 
     //cone cap intersect check
     float t = (-0.5 - P.y)/d.y;
@@ -672,11 +722,59 @@ std::pair<float, glm::vec4> RayScene::cone_intersect(glm::mat4x4 transformation,
     {
 
          dist = std::min(dist, t);
+         std::cout<<"dist "<<dist<<std::endl;
          glm::vec3 normal(0,-1,0);
          glm::vec3 token = glm::inverse(glm::transpose(transform_token)) * normal;
          closest_normal = glm::vec4(token, 0);
 
     }
+    //cone body intersect check
+    float A = pow(d.x, 2) + pow(d.z, 2) - 0.25*pow(d.y, 2);
+    float B = 2*P.x*d.x + 2*P.z*d.z - 0.5*P.y*d.y +0.25*d.y;
+    float C = pow(P.x, 2) + pow(P.z, 2) - 0.25*pow(P.y, 2) + 0.25*P.y - 1.f/16.f;
+    if(pow(B,2) - 4 * A * C >= 0)
+    {
+       float t1 = (-B + sqrt(pow(B,2) - 4*A*C))/(2*A);
+       float t2 = (-B - sqrt(pow(B,2) - 4*A*C))/(2*A);
+       //float t_comp = std::min(t1, t2);
+       if(t1 >= 0 && t1 < dist ){
+            intersect_obj = P + t1 * d;
+      //       std::cout<<"Cone body: intersect_obj: "<<glm::to_string(intersect_obj)<<std::endl;
+
+            if(intersect_obj.y < 0.5 && intersect_obj.y > -0.5){
+                 dist = std::min(dist, t1);
+                 std::cout<<"dist "<<dist<<std::endl;
+                 glm::vec3 normal(2*intersect_obj.x, 0.5*intersect_obj.y - 0.25, 2*intersect_obj.z);
+
+                 glm::vec3 token = glm::inverse(glm::transpose(transform_token)) * normal;
+                 //std::cout<<"t1 Cone body: intersect_obj: "<<glm::to_string(intersect_obj)<<std::endl;
+                 //std::cout<<"t1 Cone body: normal"<<glm::to_string(normal)<<std::endl;
+                 //std::cout<<"t1 Cone body: normal 's obj2wrold"<<glm::to_string(glm::inverse(glm::transpose(transform_token)))<<std::endl;
+                 closest_normal = glm::vec4(token, 0);
+
+            }
+       }
+
+       if(t2 >= 0 && t2 < dist)
+       {
+           intersect_obj = P + t2 * d;
+       //    std::cout<<"Cone body: intersect_obj: "<<glm::to_string(intersect_obj)<<std::endl;
+           if(intersect_obj.y < 0.5 && intersect_obj.y > -0.5){
+
+               dist = std::min(dist, t2);
+               glm::vec3 normal(2*intersect_obj.x, 0.5*intersect_obj.y - 0.25, 2*intersect_obj.z);
+               //std::cout<<"t2 Cone body: intersect_obj: "<<glm::to_string(intersect_obj)<<std::endl;
+               //std::cout<<"t2 Cone body: normal"<<glm::to_string(normal)<<std::endl;
+               //std::cout<<"t2 Cone body: normal 's obj2wrold"<<glm::to_string(glm::inverse(glm::transpose(transform_token)))<<std::endl;
+
+               glm::vec3 token = glm::inverse(glm::transpose(transform_token)) * normal;
+               closest_normal = glm::vec4(token, 0);
+
+           }
+       }
+
+    }
+
     closest_normal = glm::normalize(closest_normal);
     std::pair<float, glm::vec4> ans(dist, closest_normal);
 
@@ -807,9 +905,156 @@ std::pair<float, glm::vec4> RayScene::sphere_intersect(glm::mat4x4 transformatio
     std::pair<float, glm::vec4> ans(dist, closest_normal);
 
     return ans;
+}
+glm::vec2 RayScene::map2cube(glm::vec4 intersect_surf_world, glm::mat4x4 obj2world)
+{
+    //intersect_surf
+    glm::vec4 intersect_surf_obj = glm::inverse(obj2world) * intersect_surf_world;
+    std::cout<<"intersect_surf_obj: "<<glm::to_string(intersect_surf_obj)<<std::endl;
+    glm::vec2 uv(0.0f);
+    //std::cout<<"intersect_surf_obj: "<<glm::to_string(intersect_surf_obj)<<std::endl;
+    //std::cout<<"intersect_surf_obj.yz()"<<glm::to_string(intersect_surf_obj.yz())<<std::endl;
+    //top
+    if(abs(intersect_surf_obj.x - 0.5) <= 0.0001)
+    {
+       uv = intersect_surf_obj.yz() + glm::vec2(0.5, 0.5);
+    }
+    //bot
+    else if(abs(intersect_surf_obj.x + 0.5) <= 0.0001)
+    {
+       uv = intersect_surf_obj.yz() + glm::vec2(0.5, 0.5);
+    }
+    //top
+    else if(abs(intersect_surf_obj.y - 0.5) <= 0.0001)
+    {
+        //left top (0.5,0.5) ->(0, 1)
+       uv = intersect_surf_obj.xz() + glm::vec2(0.5, 0.5);
+    }
+    //bot
+    else if(abs(intersect_surf_obj.y + 0.5) <= 0.0001)
+    {
+         //left top (0.5,0.5) ->(1, 1)
+       uv = glm::vec2(0.5, 0.5) + intersect_surf_obj.xz() ;
+    }
+
+    else if(abs(intersect_surf_obj.z - 0.5) <= 0.0001)
+    {
+       // (0.5,0.5) ->(1, 0)
+       uv = intersect_surf_obj.xy() + glm::vec2(0.5, 0.5);
+    }
+    else if(abs(intersect_surf_obj.z + 0.5) <= 0.0001)
+    {
+       uv = glm::vec2(0.5, 0.5) + intersect_surf_obj.xy() ;
+    }
+    return uv;
+
+}
+
+glm::vec2 RayScene::map2cylinder(glm::vec4 intersect_surf_world, glm::mat4x4 obj2world)
+{
+    //intersect_surf
+    glm::vec4 intersect_surf_obj = glm::inverse(obj2world) * intersect_surf_world;
+    glm::vec2 uv(0.0f);
+    //cap
+    if(abs(abs(intersect_surf_obj.y) - 0.5) <= 0.0001)
+    {
+        uv = intersect_surf_obj.xz() + glm::vec2(0.5, 0.5);
+    }
+     // on body
+    else
+    {
+         uv[1] =  0.5 - intersect_surf_obj.y;
+        float theta = atan2(intersect_surf_obj.z, intersect_surf_obj.x);
+        if(theta < 0)
+            uv[0] = -theta/(2.0f * M_PI);
+        else
+            uv[0] = 1-(theta/(2.0f * M_PI));
+    }
+
+    return uv;
+}
+
+glm::vec2 RayScene::map2cone(glm::vec4 intersect_surf_world, glm::mat4x4 obj2world)
+{
+    //intersect_surf
+    glm::vec4 intersect_surf_obj = glm::inverse(obj2world) * intersect_surf_world;
+    glm::vec2 uv(0.0f);
+    //cap
+    if(abs(abs(intersect_surf_obj.y) - 0.5) <= 0.0001)
+    {
+       uv = intersect_surf_obj.xz() + glm::vec2(0.5, 0.5);
+    }
+     // on body
+    else
+    {
+        uv[1] =  0.5 - intersect_surf_obj.y;
+        float theta = atan2(intersect_surf_obj.z, intersect_surf_obj.x);
+        if(theta < 0)
+            uv[0] = -theta/(2.0f * M_PI);
+        else
+            uv[0] = 1-(theta/(2.0f * M_PI));
+    }
+
+    return uv;
+}
 
 
+glm::vec2 RayScene::map2sphere(glm::vec4 intersect_surf_world, glm::mat4x4 obj2world)
+{
+    std::cout<<"start running map2sphere"<<std::endl;
+    //intersect_surf
+    glm::vec4 intersect_surf_obj = glm::inverse(obj2world) * intersect_surf_world;
+    glm::vec2 uv(0.0f);
 
+
+        float phi = asin(intersect_surf_obj.y/0.5);
+        float v = phi/M_PI + 0.5;
+        uv[1] = v;
+        if(v == 0 || v == 1)
+            uv[0] = 0.5;
+        else{
+            uv[1] =  0.5 - intersect_surf_obj.y;
+            float theta = atan2(intersect_surf_obj.z, intersect_surf_obj.x);
+            if(theta < 0)
+                uv[0] = -theta/(2.0f * M_PI);
+            else
+                uv[0] = 1-(theta/(2.0f * M_PI));
+        }
+
+    return uv;
+}
+
+glm::vec4 RayScene::textureMap(glm::vec2 uv, int shape_index)
+{
+    std::cout<<"start running textureMap(glm::vec2 uv, CS123SceneMaterial mater)"<<std::endl;
+    glm::vec4 color(0.0f);
+    CS123SceneMaterial mater = m_shapes.at(shape_index).material;
+    QImage image = m_tetxures.at(shape_index);
+    QSize image_size = image.size();
+    std::cout<<"textMap place 2, is null: "<<image.isNull()<<std::endl;
+    int height = image_size.height();
+    int width = image_size.width();
+
+    std::cout<<"textMap place 3, with width: "<<width<<"height: "<<height<<std::endl;
+    float u = uv[0], v = uv[1];
+    std::cout<<"textMap place 4: u: "<<u<<"v"<<v<<std::endl;
+    int s = ((int) (u * mater.textureMap.repeatU * width)) % width;
+
+
+     std::cout<<"textMap place 5"<<std::endl;
+    int t = ((int) (v * mater.textureMap.repeatV * height)) % height;
+
+    std::cout<<"textMap place 6, s: "<<s<<" t: "<<t<<std::endl;
+    //image.pixelColor(s,t);
+    QColor cur_color = image.pixelColor(s,t);
+
+    float red = cur_color.red()/255.0f;
+    float green = cur_color.green()/255.0f;
+    float blue = cur_color.blue()/255.0f;
+    glm::vec4 text_color(red,green, blue,0);
+     std::cout<<"textMap place 7, output color:"<<glm::to_string(text_color)<<std::endl;
+    return text_color;
+   // return glm::vec4(0.0);
 }
 
 

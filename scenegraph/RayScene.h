@@ -63,13 +63,26 @@ private:
                                              glm::vec4 intersect_surf,
                                              CS123ScenePrimitive intersect_shape,
                                              glm::vec4 normal,
-                                             glm::vec4 sight_vect);
+                                             glm::vec4 sight_vect,
+                                             glm::vec4 texture_color);
 
     glm::vec4 point_lighting(CS123SceneLightData point_light,
                                        glm::vec4 intersect_surf,
                                        CS123ScenePrimitive intersect_shape,
                                        glm::vec4 normal,
-                                       glm::vec4 sight_vec);
+                                       glm::vec4 sight_vec,
+                                       glm::vec4 texture_color);
+
+    glm::vec2 map2cube(glm::vec4 intersect_surf, glm::mat4x4 obj2world);
+
+    glm::vec2 map2cylinder(glm::vec4 intersect_surf_world, glm::mat4x4 obj2world);
+
+    glm::vec2 map2cone(glm::vec4 intersect_surf_world, glm::mat4x4 obj2world);
+
+    glm::vec2 map2sphere(glm::vec4 intersect_surf_world, glm::mat4x4 obj2world);
+
+    glm::vec4 textureMap(glm::vec2 uv, int shape_index);
+
 
 
     //glm::vec4 m_closest_normal;
@@ -87,6 +100,7 @@ private:
 
     std::vector<CS123ScenePrimitive> m_shapes;
     std::vector<glm::mat4x4> m_transformation;
+    std::vector<QImage> m_tetxures;
 
     /*
      *

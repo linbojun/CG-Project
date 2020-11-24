@@ -41,6 +41,7 @@ void Scene::parse(Scene *sceneToFill, CS123ISceneParser *parser) {
 
     //deal with global data
     // virtual bool getGlobalData(CS123SceneGlobalData& data) const = 0;
+
     CS123SceneGlobalData token_global;
     parser->getGlobalData(token_global);
     sceneToFill->setGlobal(token_global);
@@ -86,7 +87,6 @@ void Scene::setGlobal(const CS123SceneGlobalData &global) {
 void Scene::traverTree(CS123SceneNode *root, glm::mat4x4 T, Scene *sceneToFill)
 {
     glm::mat4x4 complex = T;
-
 
     //iterate through all transformations
     for(int i = 0; i < root->transformations.size(); i++)
