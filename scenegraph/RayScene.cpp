@@ -270,10 +270,10 @@ glm::vec4 RayScene::estimate_direct_light(int closest_index, std::pair<float, gl
 
             else
                 diffuse_term = m_light_list.at(i).color * ( m_global.kd * closest_primitive.material.cDiffuse * std::max(0.0f, glm::dot(normal, light_vec)));
-
+              glm::vec4 specular =  m_light_list.at(i).color * m_global.ks * closest_primitive.material.cSpecular * pow(glm::dot(R, V), closest_primitive.material.shininess);
              //n is the specular exponent
-            color += diffuse_term
-                       + m_global.ks * closest_primitive.material.cSpecular * pow(glm::dot(R, V), closest_primitive.material.shininess);
+            color += diffuse_term + specular;
+
 
         }
 
@@ -349,7 +349,7 @@ glm::vec4 RayScene::directional_lighting(CS123SceneLightData dir_light,
     }
     //std::cout<<"blend: "<<blend<<std::endl;
     //std::cout<<"In directional_lighting, the diffuse_term : "<<glm::to_string(diffuse_term)<<std::endl;
-    glm::vec4 specular_term =  m_global.ks * intersect_shape.material.cSpecular * pow(glm::dot(R, V), intersect_shape.material.shininess);
+    glm::vec4 specular_term = dir_light.color *  m_global.ks * intersect_shape.material.cSpecular * pow(glm::dot(R, V), intersect_shape.material.shininess);
     //std::cout<<"In directional_lighting, the specular_term: "<<glm::to_string(specular_term)<<std::endl;
     color += diffuse_term + specular_term;
     //std::cout<<"In directional_lighting, the final color: "<<glm::to_string(color)<<std::endl;
@@ -410,7 +410,7 @@ glm::vec4 RayScene::point_lighting(CS123SceneLightData point_light,
     else
         diffuse_term = point_light.color * ( m_global.kd *intersect_shape.material.cDiffuse * std::max(0.0f, glm::dot(normal, light_vec)));
 
-    glm::vec4 specular_term = m_global.ks * intersect_shape.material.cSpecular * pow(glm::dot(R, V), intersect_shape.material.shininess);
+    glm::vec4 specular_term = point_light.color * m_global.ks * intersect_shape.material.cSpecular * pow(glm::dot(R, V), intersect_shape.material.shininess);
     color += atten * (diffuse_term +specular_term );
     return color;
 }
@@ -549,7 +549,6 @@ void RayScene::render_top()
                  QCoreApplication::processEvents();
                  m_canvas->update();
             }
-
         }
     }
     QCoreApplication::processEvents();
