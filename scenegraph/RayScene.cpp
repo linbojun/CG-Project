@@ -729,9 +729,9 @@ std::pair<float, glm::vec4> RayScene::cone_intersect(glm::mat4x4 transformation,
     }
     //cone body intersect check
     float A = pow(d.x, 2) + pow(d.z, 2) - 0.25*pow(d.y, 2);
-    float B = 2*P.x*d.x + 2*P.z*d.z - 0.5*P.y*d.y +0.25*d.y;
-    float C = pow(P.x, 2) + pow(P.z, 2) - 0.25*pow(P.y, 2) + 0.25*P.y - 1.f/16.f;
-    if(pow(B,2) - 4 * A * C >= 0)
+    float B = 2.0f *P.x*d.x + 2.0f * P.z*d.z - 0.5f*P.y*d.y +0.25f*d.y;
+    float C = pow(P.x, 2) + pow(P.z, 2) - 0.25f*pow(P.y, 2) + 0.25f*P.y - 1.f/16.f;
+    if(pow(B,2) - 4.0f * A * C >= 0)
     {
        float t1 = (-B + sqrt(pow(B,2) - 4*A*C))/(2*A);
        float t2 = (-B - sqrt(pow(B,2) - 4*A*C))/(2*A);
@@ -743,7 +743,12 @@ std::pair<float, glm::vec4> RayScene::cone_intersect(glm::mat4x4 transformation,
             if(intersect_obj.y < 0.5 && intersect_obj.y > -0.5){
                  dist = std::min(dist, t1);
                  std::cout<<"dist "<<dist<<std::endl;
-                 glm::vec3 normal(2*intersect_obj.x, 0.5*intersect_obj.y - 0.25, 2*intersect_obj.z);
+                 glm::vec3 normal(intersect_obj.x, 0, intersect_obj.z);
+                 normal = glm::normalize(normal);
+                 normal = glm::vec3(
+                             2.0f / sqrt(5.0f) * normal.x,
+                             1.0f / sqrt(5.0f),
+                             2.0f / sqrt(5.0f) * normal.z);
 
                  glm::vec3 token = glm::inverse(glm::transpose(transform_token)) * normal;
                  //std::cout<<"t1 Cone body: intersect_obj: "<<glm::to_string(intersect_obj)<<std::endl;
@@ -761,7 +766,13 @@ std::pair<float, glm::vec4> RayScene::cone_intersect(glm::mat4x4 transformation,
            if(intersect_obj.y < 0.5 && intersect_obj.y > -0.5){
 
                dist = std::min(dist, t2);
-               glm::vec3 normal(2*intersect_obj.x, 0.5*intersect_obj.y - 0.25, 2*intersect_obj.z);
+               //glm::vec3 normal(2*intersect_obj.x, 0.5*intersect_obj.y - 0.25, 2*intersect_obj.z);
+               glm::vec3 normal(intersect_obj.x, 0, intersect_obj.z);
+               normal = glm::normalize(normal);
+               normal = glm::vec3(
+                           2.0f / sqrt(5.0f) * normal.x,
+                           1.0f / sqrt(5.0f),
+                           2.0f / sqrt(5.0f) * normal.z);
                //std::cout<<"t2 Cone body: intersect_obj: "<<glm::to_string(intersect_obj)<<std::endl;
                //std::cout<<"t2 Cone body: normal"<<glm::to_string(normal)<<std::endl;
                //std::cout<<"t2 Cone body: normal 's obj2wrold"<<glm::to_string(glm::inverse(glm::transpose(transform_token)))<<std::endl;
